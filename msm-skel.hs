@@ -23,13 +23,13 @@ data Inst
     deriving (Eq,Show)
  
 -- | The type `Prog` represents programs for the MSM.
-type Prog = ...
+type Prog = [Inst]
 
 -- | The type `Stack` represents the stack of the MSM.
-type Stack = ...
+type Stack = [Int]
 
 -- | Regs is the type for keeping track of registers
-type Regs = ...
+type Regs = [Int]
 
 
 -- | This data type encapsulates the state of a running MSM.
