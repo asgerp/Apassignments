@@ -23,28 +23,36 @@ data Inst
     deriving (Eq,Show)
  
 -- | The type `Prog` represents programs for the MSM.
+-- | This is represented by a list of Inst's
 type Prog = [Inst]
 
 -- | The type `Stack` represents the stack of the MSM.
+-- | This is represented by a list of Int's
 type Stack = [Int]
 
 -- | Regs is the type for keeping track of registers
+-- | This is represented by a list of Int's
 type Regs = [Int]
 
 
 -- | This data type encapsulates the state of a running MSM.
 data State = State
-             { prog  :: ...
-             , pc    :: ...
-             , stack :: ...
-             , regs  :: ...
+             { prog  :: Prog
+             , pc    :: Int
+             , stack :: Stack
+             , regs  :: Regs
              }
            deriving (Show)
 
 -- | `initial` constructs the initial state of an MSM running the
 -- given program.
+-- State should have prog = p, pc = 0, stack = new Stack, regs = new Regs
 initial :: Prog -> State
-initial p = ...
+initial p = State { prog = p
+                  , pc = 0                     
+                  , stack = []                   
+                  , regs = []                      
+                  }
 
 -- | This is the monad that is used to implement the MSM. 
 newtype MSM a = MSM (State -> ...)
@@ -74,9 +82,9 @@ modify f = ...
 
 -- | This function provides the instruction the PC currently points
 -- to. If the PC is out of bounds, the MSM halts with an error.
-getInst :: ...
+getInst :: Inst
 getInst = ...
-
+          
 -- | This function runs the MSM.
 interp :: MSM ()
 interp = run
