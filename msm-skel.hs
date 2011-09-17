@@ -55,35 +55,36 @@ initial p = State { prog = p
                   }
 
 -- | This is the monad that is used to implement the MSM. 
-newtype MSM a = MSM (State -> ...)
+newtype MSM a = MSM (State -> State )
 
 instance Monad MSM where
     -- (>>=) :: MSM a -> (a -> MSM b) -> MSM b
-    (MSM p) >>= k = ...
+    (MSM p) >>= k = undefined
 
     -- return :: a -> MSM a
-    return a = ...
+    return a = undefined 
     
     -- fail :: String -> MSM a
-    fail s = ...
+    fail s = undefined
 
 -- | get returns the current state of the running MSM.
 get :: MSM State
-get = ...
+get = undefined
 
 -- | set a new state for the running MSM.
 set :: State -> MSM ()
-set m = ...
+set m = undefined
 
 -- | modify the state for the running MSM according to
 -- the provided function argument
 modify :: (State -> State) -> MSM ()
-modify f = ...
+modify f = undefined
 
 -- | This function provides the instruction the PC currently points
 -- to. If the PC is out of bounds, the MSM halts with an error.
+-- Get the PC from the State, then get the Prog, then get Inst PC points to from Prog, return that, if out of bounds HALT
 getInst :: Inst
-getInst = ...
+getInst = undefined
           
 -- | This function runs the MSM.
 interp :: MSM ()
@@ -96,12 +97,12 @@ interp = run
 -- if the MSM is supposed to continue it's execution after this
 -- instruction.
 interpInst :: Inst -> MSM Bool
-interpInst inst = ...
+interpInst inst = undefined
 
 -- | Run the given program on the MSM
-runMSM :: Prog -> ...
+runMSM :: Prog -> Prog
 runMSM p = let (MSM f) = interp 
-           in fmap snd $ f $ initial p
+            in fmap snd $ f $ initial p
 
 
 
