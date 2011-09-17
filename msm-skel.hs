@@ -55,21 +55,23 @@ initial p = State { prog = p
                   }
 
 -- | This is the monad that is used to implement the MSM. 
-newtype MSM a = MSM (State -> State )
+newtype MSM a = MSM (State -> (a,State))
 
 instance Monad MSM where
     -- (>>=) :: MSM a -> (a -> MSM b) -> MSM b
-    (MSM p) >>= k = undefined
+    (MSM p) >>= k = MSM (\s0 -> let (r, s1) = p s0
+                                    MSM p1 = k r in
+                                p1 s1)
 
     -- return :: a -> MSM a
-    return a = undefined 
+    return a = MSM (\x -> (a,x))
     
     -- fail :: String -> MSM a
     fail s = undefined
 
 -- | get returns the current state of the running MSM.
 get :: MSM State
-get = undefined
+get = MSM (\x -> (x,x))
 
 -- | set a new state for the running MSM.
 set :: State -> MSM ()
@@ -78,20 +80,20 @@ set m = undefined
 -- | modify the state for the running MSM according to
 -- the provided function argument
 modify :: (State -> State) -> MSM ()
-modify f = undefined
+modify f = MSM (\s -> ((), f s))
 
 -- | This function provides the instruction the PC currently points
 -- to. If the PC is out of bounds, the MSM halts with an error.
 -- Get the PC from the State, then get the Prog, then get Inst PC points to from Prog, return that, if out of bounds HALT
 getInst :: Inst
-getInst = undefined
+getInst = HALT
           
 -- | This function runs the MSM.
-interp :: MSM ()
-interp = run
-    where run = do inst <- getInst
-                   cont <- interpInst inst
-                   when cont run
+-- interp :: MSM ()
+-- interp = run
+--     where run = do inst <- getInst
+--                    cont <- interpInst inst
+--                    when cont run
 
 -- | This function interprets the given instruction. It returns True
 -- if the MSM is supposed to continue it's execution after this
@@ -100,9 +102,9 @@ interpInst :: Inst -> MSM Bool
 interpInst inst = undefined
 
 -- | Run the given program on the MSM
-runMSM :: Prog -> Prog
-runMSM p = let (MSM f) = interp 
-            in fmap snd $ f $ initial p
+-- runMSM :: Prog -> Prog
+-- runMSM p = let (MSM f) = interp 
+--            in fmap snd $ f $ initial p
 
 
 
