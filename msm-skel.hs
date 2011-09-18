@@ -20,6 +20,9 @@ data Inst
     | JMP
     | CJMP Int
     | HALT
+    | FORK
+    | READ Int
+    | WRITE Int
     deriving (Eq,Show)
  
 -- | The type `Prog` represents programs for the MSM.
@@ -57,6 +60,7 @@ initial p = State { prog = p
 -- | This is the monad that is used to implement the MSM. 
 newtype MSM a = MSM (State -> (a,State))
 
+
 instance Monad MSM where
     -- (>>=) :: MSM a -> (a -> MSM b) -> MSM b
     (MSM p) >>= k = MSM (\s0 -> let (r, s1) = p s0
@@ -84,22 +88,39 @@ modify f = MSM (\s -> ((), f s))
 
 -- | This function provides the instruction the PC currently points
 -- to. If the PC is out of bounds, the MSM halts with an error.
--- Get the PC from the State, then get the Prog, then get Inst PC points to from Prog, return that, if out of bounds HALT
-getInst :: Inst
-getInst = HALT
+-- Get the PC from the State, then get the Prog, then get Inst PC points to from Prog, return that, if out of bounds HALT/fail s
+getInst :: MSM Inst
+getInst = undefined
           
 -- | This function runs the MSM.
--- interp :: MSM ()
--- interp = run
---     where run = do inst <- getInst
---                    cont <- interpInst inst
---                    when cont run
+interp :: MSM ()
+interp = run
+    where run = do inst <- getInst
+                   cont <- interpInst inst
+                   when cont run
 
 -- | This function interprets the given instruction. It returns True
 -- if the MSM is supposed to continue it's execution after this
 -- instruction.
 interpInst :: Inst -> MSM Bool
 interpInst inst = undefined
+  -- case inst of
+  --   PUSH a     ->  True
+  --   POP        ->  True
+  --   DUP        ->  True
+  --   SWAP       ->  True
+  --   NEWREG a   ->  True
+  --   LOAD       ->  True
+  --   STORE      ->  True
+  --   NEG        ->  True
+  --   ADD        ->  True
+  --   JMP        ->  True
+  --   CJMP a     ->  True
+  --   HALT       ->  False
+  --   FORK       ->  False
+  --   READ a     ->  False
+  --   WRITE a    ->  False
+  --   _          ->  False
 
 -- | Run the given program on the MSM
 -- runMSM :: Prog -> Prog
