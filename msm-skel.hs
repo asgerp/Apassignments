@@ -124,8 +124,6 @@ interpInst inst = do
       return True
     --               in 
      --   _ -> return False
-
-  --   SWAP       ->  True
   --   NEWREG a   ->  True
   --   LOAD       ->  True
   --   STORE      ->  True
