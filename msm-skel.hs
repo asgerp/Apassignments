@@ -79,7 +79,7 @@ get = MSM (\x -> (x,x))
 
 -- | set a new state for the running MSM.
 set :: State -> MSM ()
-set m = MSM (\x -> ((),m))
+set m = MSM (const ((),m))
 
 -- | modify the state for the running MSM according to
 -- the provided function argument
@@ -114,12 +114,17 @@ interpInst :: Inst -> MSM Bool
 interpInst inst = do
   stat <- get
   case inst of
-    PUSH a     ->  let newState = set stat{stack = a:stack stat, pc = pc stat +1} 
+    PUSH a     ->  let update = set stat{stack = a:stack stat, pc = pc stat +1} in
                    return True
-                   
-    _ -> return False
-  --   POP        ->  True
-  --   DUP        ->  True
+    POP        ->  let update = set stat{stack = tail $ stack stat, pc = pc stat +1 } in
+                   return True
+    DUP        ->  let update = set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } in 
+      return True
+    SWAP       ->  let update = set stat{stack = swapStack (stack stat), pc = pc stat +1 } in 
+      return True
+    --               in 
+     --   _ -> return False
+
   --   SWAP       ->  True
   --   NEWREG a   ->  True
   --   LOAD       ->  True
@@ -132,8 +137,10 @@ interpInst inst = do
   --   FORK       ->  False
   --   READ a     ->  False
   --   WRITE a    ->  False
-  --   _          ->  False
-
+    
+swapStack :: Stack -> Stack
+swapStack xs = let (a,b) = (head(xs),head(tail(xs)))
+ in b : a : (drop 2 xs)
 -- | Run the given program on the MSM
 --runMSM :: Prog -> Prog
 --runMSM p = let (MSM f) = interp             
