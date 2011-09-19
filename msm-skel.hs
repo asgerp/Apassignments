@@ -111,7 +111,6 @@ interp = run
 -- generel logic: get the current state do the instruction, update values in state
 -- to new state and set the new state to the current lastly return MSM True or MSM False
 interpInst :: Inst -> MSM Bool
-<<<<<<< HEAD
 interpInst inst = do
   stat <- get
   case inst of
@@ -124,15 +123,7 @@ interpInst inst = do
     SWAP       ->  let update = set stat{stack = swapStack (stack stat), pc = pc stat +1 } in 
       return True
     --               in 
-     --   _ -> return False
-=======
-interpInst inst = undefined
-  -- case inst of
-  --   PUSH a     ->  True
-  --   POP        ->  True
-  --   DUP        ->  True
-  --   SWAP       ->  True 
->>>>>>> bullshit sync.
+     --   _ -> return False 
   --   NEWREG a   ->  True
   --   LOAD       ->  True
   --   STORE      ->  True
