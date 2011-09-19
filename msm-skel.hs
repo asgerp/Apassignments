@@ -123,11 +123,7 @@ interpInst inst = do
     SWAP       ->  let update = set stat{stack = swapStack (stack stat), pc = pc stat +1 } in 
       return True
     --               in 
-<<<<<<< HEAD
      --   _ -> return False 
-=======
-     --   _ -> return False
->>>>>>> parent of e114916... bullshit sync.
   --   NEWREG a   ->  True
   --   LOAD       ->  True
   --   STORE      ->  True
