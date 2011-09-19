@@ -63,9 +63,10 @@ newtype MSM a = MSM (State -> (a,State))
 
 instance Monad MSM where
     -- (>>=) :: MSM a -> (a -> MSM b) -> MSM b
-    (MSM p) >>= k = MSM (\s0 -> let (r, s1) = p s0
-                                    MSM p1 = k r in
-                                p1 s1)
+  -- skriv navne på variable
+    (MSM p) >>= k = MSM (\s -> let (r, state1) = p s
+                                   (MSM p1) = k r 
+                               in p1 state1)
 
     -- return :: a -> MSM a
     return a = MSM (\x -> (a,x))
@@ -79,7 +80,7 @@ get = MSM (\x -> (x,x))
 
 -- | set a new state for the running MSM.
 set :: State -> MSM ()
-set m = undefined
+set m = MSM (\x -> ((),m))
 
 -- | modify the state for the running MSM according to
 -- the provided function argument
@@ -90,7 +91,12 @@ modify f = MSM (\s -> ((), f s))
 -- to. If the PC is out of bounds, the MSM halts with an error.
 -- Get the PC from the State, then get the Prog, then get Inst PC points to from Prog, return that, if out of bounds HALT/fail s
 getInst :: MSM Inst
-getInst = undefined
+getInst = do
+  stat <- get
+  if pc stat > length ( prog stat)
+    then fail "out of bounds"
+    else return $ prog stat !! pc stat
+
           
 -- | This function runs the MSM.
 interp :: MSM ()
