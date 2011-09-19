@@ -63,7 +63,6 @@ newtype MSM a = MSM (State -> (a,State))
 
 instance Monad MSM where
     -- (>>=) :: MSM a -> (a -> MSM b) -> MSM b
-  -- skriv navne på variable
     (MSM p) >>= k = MSM (\s -> let (r, state1) = p s
                                    (MSM p1) = k r 
                                in p1 state1)
@@ -89,7 +88,8 @@ modify f = MSM (\s -> ((), f s))
 
 -- | This function provides the instruction the PC currently points
 -- to. If the PC is out of bounds, the MSM halts with an error.
--- Get the PC from the State, then get the Prog, then get Inst PC points to from Prog, return that, if out of bounds HALT/fail s
+-- Get the current State. Get the PC from the State, then get the Prog, 
+-- then get Inst PC points to from Prog, return that, if out of bounds fail s
 getInst :: MSM Inst
 getInst = do
   stat <- get
@@ -108,10 +108,16 @@ interp = run
 -- | This function interprets the given instruction. It returns True
 -- if the MSM is supposed to continue it's execution after this
 -- instruction.
+-- generel logic: get the current state do the instruction, update values in state
+-- to new state and set the new state to the current lastly return MSM True or MSM False
 interpInst :: Inst -> MSM Bool
-interpInst inst = undefined
-  -- case inst of
-  --   PUSH a     ->  True
+interpInst inst = do
+  stat <- get
+  case inst of
+    PUSH a     ->  let newState = set stat{stack = a:stack stat, pc = pc stat +1} 
+                   return True
+                   
+    _ -> return False
   --   POP        ->  True
   --   DUP        ->  True
   --   SWAP       ->  True
@@ -129,9 +135,9 @@ interpInst inst = undefined
   --   _          ->  False
 
 -- | Run the given program on the MSM
--- runMSM :: Prog -> Prog
--- runMSM p = let (MSM f) = interp 
---            in fmap snd $ f $ initial p
+--runMSM :: Prog -> Prog
+--runMSM p = let (MSM f) = interp             
+--           in fmap snd $ f $ initial p
 
 
 
