@@ -122,6 +122,10 @@ interpInst inst = do
       return True
     SWAP       ->  let update = set stat{stack = swapStack (stack stat), pc = pc stat +1 } in 
       return True
+    NEG        ->  let update = set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } in
+                   return True
+    ADD        ->  let update = set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } in
+                   return True
     --               in 
      --   _ -> return False 
   --   NEWREG a   ->  True
