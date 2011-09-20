@@ -126,6 +126,8 @@ interpInst inst = do
                    return True
     ADD        ->  let update = set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } in
                    return True
+    JMP        ->  let update = set stat{pc = head(stack stat), stack = tail(stack stat) } in
+                   return True
     --               in 
      --   _ -> return False 
   --   NEWREG a   ->  True
@@ -139,7 +141,7 @@ interpInst inst = do
   --   FORK       ->  False
   --   READ a     ->  False
   --   WRITE a    ->  False
-    
+
 swapStack :: Stack -> Stack
 swapStack xs = let (a,b) = (head(xs),head(tail(xs)))
  in b : a : (drop 2 xs)
