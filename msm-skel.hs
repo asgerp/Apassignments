@@ -3,6 +3,9 @@ module MSM where
 -- we want to use monads here
 import Control.Monad
 import Data.Maybe
+
+import Debug.Trace as Trace
+
 -- and you might also find Maps useful
 import Data.Map as Map
 
@@ -51,6 +54,7 @@ data State = State
 -- given program.
 -- State should have prog = p, pc = 0, stack = new Stack, regs = new Regs
 initial :: Prog -> State
+initial p | Trace.trace ("initial p called with " ++ show p  ) False = undefined
 initial p = State { prog = p
                   , pc = 0                     
                   , stack = []                   
@@ -79,6 +83,7 @@ get = MSM (\x -> Right (x,x))
 
 -- | set a new state for the running MSM.
 set :: State -> MSM ()
+set m| Trace.trace("called set state " ++ show m) False = undefined
 set m = MSM (\x -> Right ((),m))
 
 -- | modify the state for the running MSM according to
@@ -111,6 +116,7 @@ interp = run
 -- generel logic: get the current state do the instruction, update values in state
 -- to new state and set the new state to the current lastly return MSM True or MSM False
 interpInst :: Inst -> MSM Bool
+interpInst inst | Trace.trace("called interpinst with inst "++ show inst) False = undefined
 interpInst inst = do
   stat <- get
   case inst of
@@ -134,8 +140,8 @@ interpInst inst = do
                    in update >> return True
     STORE      ->  let update = set stat{regs = Map.insert (head(tail(stack stat))) (head(stack stat)) (regs stat), stack = drop 2 (stack stat), pc = pc stat +1 }
                    in update >> return True
+    HALT       -> return False 
   --   CJMP a     ->  True
-  --   HALT       ->  False
   --   FORK       ->  False
   --   READ a     ->  False
   --   WRITE a    ->  False
