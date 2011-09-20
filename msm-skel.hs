@@ -35,7 +35,7 @@ type Stack = [Int]
 
 -- | Regs is the type for keeping track of registers
 -- | This is represented by a list of Int's
-type Regs = [Int]
+type Regs = Map.Map 
 
 
 -- | This data type encapsulates the state of a running MSM.
@@ -43,7 +43,7 @@ data State = State
              { prog  :: Prog
              , pc    :: Int
              , stack :: Stack
-             , regs  :: Regs
+             , regs  :: Regs Int Int
              }
            deriving (Show)
 
@@ -54,37 +54,37 @@ initial :: Prog -> State
 initial p = State { prog = p
                   , pc = 0                     
                   , stack = []                   
-                  , regs = []                      
+                  , regs = Map.empty                      
                   }
 
 -- | This is the monad that is used to implement the MSM. 
-newtype MSM a = MSM (State -> (a,State))
+newtype MSM a = MSM (State -> Either String (a,State))
 
 
 instance Monad MSM where
     -- (>>=) :: MSM a -> (a -> MSM b) -> MSM b
-    (MSM p) >>= k = MSM (\s -> let (r, state1) = p s
+    (MSM p) >>= k = MSM (\s -> let Right (r, state1) = p s
                                    (MSM p1) = k r 
                                in p1 state1)
 
     -- return :: a -> MSM a
-    return a = MSM (\x -> (a,x))
+    return a = MSM (\x -> Right (a,x))
     
     -- fail :: String -> MSM a
-    fail s = undefined
+    fail s = MSM (\x -> Left s)
 
 -- | get returns the current state of the running MSM.
 get :: MSM State
-get = MSM (\x -> (x,x))
+get = MSM (\x -> Right (x,x))
 
 -- | set a new state for the running MSM.
 set :: State -> MSM ()
-set m = MSM (const ((),m))
+set m = MSM (\x -> Right ((),m))
 
 -- | modify the state for the running MSM according to
 -- the provided function argument
 modify :: (State -> State) -> MSM ()
-modify f = MSM (\s -> ((), f s))
+modify f = MSM (\s -> Right ((), f s))
 
 -- | This function provides the instruction the PC currently points
 -- to. If the PC is out of bounds, the MSM halts with an error.
@@ -114,27 +114,24 @@ interpInst :: Inst -> MSM Bool
 interpInst inst = do
   stat <- get
   case inst of
-    PUSH a     ->  let update = set stat{stack = a:stack stat, pc = pc stat +1} in
-                   return True
-    POP        ->  let update = set stat{stack = tail $ stack stat, pc = pc stat +1 } in
-                   return True
-    DUP        ->  let update = set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } in 
-      return True
-    SWAP       ->  let update = set stat{stack = swapStack (stack stat), pc = pc stat +1 } in 
-      return True
-    NEG        ->  let update = set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } in
-                   return True
-    ADD        ->  let update = set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } in
-                   return True
-    JMP        ->  let update = set stat{pc = head(stack stat), stack = tail(stack stat) } in
-                   return True
-    --               in 
-     --   _ -> return False 
-  --   NEWREG a   ->  True
+    PUSH a     ->  let update = set stat{stack = a:stack stat, pc = pc stat +1} 
+                   in return True
+    POP        ->  let update = set stat{stack = tail $ stack stat, pc = pc stat +1 } 
+                   in return True
+    DUP        ->  let update = set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } 
+                   in return True
+    SWAP       ->  let update = set stat{stack = swapStack (stack stat), pc = pc stat +1 } 
+                   in return True
+    NEG        ->  let update = set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } 
+                   in return True
+    ADD        ->  let update = set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+                   in return True
+    NEWREG a   ->  let update = set stat{regs = Map.insert a 0 (regs stat), pc = pc stat + 1 } 
+                   in return True
+ JMP        ->  let update = set stat{pc = head(stack stat), stack = tail(stack stat) } in
+return True
   --   LOAD       ->  True
   --   STORE      ->  True
-  --   NEG        ->  True
-  --   ADD        ->  True
   --   JMP        ->  True
   --   CJMP a     ->  True
   --   HALT       ->  False
@@ -143,12 +140,12 @@ interpInst inst = do
   --   WRITE a    ->  False
 
 swapStack :: Stack -> Stack
-swapStack xs = let (a,b) = (head(xs),head(tail(xs)))
- in b : a : (drop 2 xs)
+swapStack xs = let (a,b) = (head xs,head(tail xs))
+ in b : a : drop 2 xs
 -- | Run the given program on the MSM
---runMSM :: Prog -> Prog
---runMSM p = let (MSM f) = interp             
---           in fmap snd $ f $ initial p
+runMSM :: Prog -> Prog
+runMSM p = let (MSM f) = interp             
+           in fmap snd $ f $ initial p
 
 
 
