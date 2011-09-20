@@ -2,9 +2,9 @@ module MSM where
 
 -- we want to use monads here
 import Control.Monad
-
+import Data.Maybe
 -- and you might also find Maps useful
-import qualified Data.Map as Map
+import Data.Map as Map
 
 -- | The type of instructions for the MSM.
 data Inst 
@@ -35,7 +35,7 @@ type Stack = [Int]
 
 -- | Regs is the type for keeping track of registers
 -- | This is represented by a list of Int's
-type Regs = Map.Map 
+type Regs = Map.Map Int Int
 
 
 -- | This data type encapsulates the state of a running MSM.
@@ -43,7 +43,7 @@ data State = State
              { prog  :: Prog
              , pc    :: Int
              , stack :: Stack
-             , regs  :: Regs Int Int
+             , regs  :: Regs
              }
            deriving (Show)
 
@@ -115,24 +115,25 @@ interpInst inst = do
   stat <- get
   case inst of
     PUSH a     ->  let update = set stat{stack = a:stack stat, pc = pc stat +1} 
-                   in return True
+                   in update >> return True
     POP        ->  let update = set stat{stack = tail $ stack stat, pc = pc stat +1 } 
-                   in return True
+                   in update >> return True
     DUP        ->  let update = set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } 
-                   in return True
+                   in update >> return True
     SWAP       ->  let update = set stat{stack = swapStack (stack stat), pc = pc stat +1 } 
-                   in return True
+                   in update >> return True
     NEG        ->  let update = set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } 
-                   in return True
+                   in update >> return True
     ADD        ->  let update = set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
-                   in return True
+                   in update >> return True
     NEWREG a   ->  let update = set stat{regs = Map.insert a 0 (regs stat), pc = pc stat + 1 } 
-                   in return True
+                   in update >> return True
     JMP        ->  let update = set stat{pc = head(stack stat), stack = tail(stack stat) } 
-                   in return True
-  --   LOAD       ->  True
-  --   STORE      ->  True
-  --   JMP        ->  True
+                   in update >> return True
+    LOAD       ->  let update = set stat{stack = regs stat ! (head(stack stat)) : tail(stack stat), pc = pc stat +1 }
+                   in update >> return True
+    STORE      ->  let update = set stat{regs = Map.insert (head(tail(stack stat))) (head(stack stat)) (regs stat), stack = drop 2 (stack stat), pc = pc stat +1 }
+                   in update >> return True
   --   CJMP a     ->  True
   --   HALT       ->  False
   --   FORK       ->  False
@@ -142,7 +143,7 @@ interpInst inst = do
 swapStack :: Stack -> Stack
 swapStack xs = let (a,b) = (head xs,head(tail xs))
  in b : a : drop 2 xs
-    
+
 -- | Run the given program on the MSM
 runMSM :: Prog -> Either String State
 runMSM p = let (MSM f) = interp
