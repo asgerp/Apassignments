@@ -140,8 +140,9 @@ interpInst inst = do
                    in update >> return True
     STORE      ->  let update = set stat{regs = Map.insert (head(tail(stack stat))) (head(stack stat)) (regs stat), stack = drop 2 (stack stat), pc = pc stat +1 }
                    in update >> return True
-    HALT       -> return False 
-  --   CJMP a     ->  True
+    HALT       ->  return False 
+    CJMP a     ->  let update = if (head(stack stat)) < 0 then set stat{stack = tail(stack stat), pc = a} else set stat{stack = tail(stack stat), pc = pc stat +1} 
+                   in update >> return True
   --   FORK       ->  False
   --   READ a     ->  False
   --   WRITE a    ->  False
