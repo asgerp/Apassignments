@@ -128,8 +128,8 @@ interpInst inst = do
                    in return True
     NEWREG a   ->  let update = set stat{regs = Map.insert a 0 (regs stat), pc = pc stat + 1 } 
                    in return True
- JMP        ->  let update = set stat{pc = head(stack stat), stack = tail(stack stat) } in
-return True
+    JMP        ->  let update = set stat{pc = head(stack stat), stack = tail(stack stat) } 
+                   in return True
   --   LOAD       ->  True
   --   STORE      ->  True
   --   JMP        ->  True
@@ -142,9 +142,10 @@ return True
 swapStack :: Stack -> Stack
 swapStack xs = let (a,b) = (head xs,head(tail xs))
  in b : a : drop 2 xs
+    
 -- | Run the given program on the MSM
-runMSM :: Prog -> Prog
-runMSM p = let (MSM f) = interp             
+runMSM :: Prog -> Either String State
+runMSM p = let (MSM f) = interp
            in fmap snd $ f $ initial p
 
 
