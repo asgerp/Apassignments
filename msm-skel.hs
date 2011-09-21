@@ -136,27 +136,37 @@ interpInst inst = do
     PUSH a     ->  let update = set stat{stack = a:stack stat, pc = pc stat +1} 
                    in update >> return True
     POP        ->  let update = if List.null (stack stat) then emptyStack 
-                   else set stat{stack = tail $ stack stat, pc = pc stat +1 } 
+                                else set stat{stack = tail $ stack stat, pc = pc stat +1 } 
                    in update >> return True
-    DUP        ->  let update = set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } 
+    DUP        ->  let update = if List.null (stack stat) then emptyStack
+                                else set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } 
                    in update >> return True
-    SWAP       ->  let update = set stat{stack = swapStack (stack stat), pc = pc stat +1 } 
+    SWAP       ->  let update = if length[(stack stat)] >= 2 then set stat{stack = swapStack (stack stat), pc = pc stat +1 } 
+                                else stackLTE2Elem "SWAP"
                    in update >> return True
-    NEG        ->  let update = set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } 
+    NEG        ->  let update = if List.null (stack stat) then emptyStack
+                                else set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } 
                    in update >> return True
-    ADD        ->  let update = set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+    ADD        ->  let update = if length[(stack stat)] >= 2 then set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+                                else stackLTE2Elem "ADD"
                    in update >> return True
-    NEWREG a   ->  let update = set stat{regs = Map.insert a 0 (regs stat), pc = pc stat + 1 } 
+    NEWREG a   ->  let update = if (Map.member a (regs stat)) then alreadyAllocated a 
+                                else set stat{regs = Map.insert a 0 (regs stat), pc = pc stat + 1 } 
                    in update >> return True
-    JMP        ->  let update = set stat{pc = head(stack stat), stack = tail(stack stat) } 
+    JMP        ->  let update = if List.null (stack stat) then emptyStack 
+                                else set stat{pc = head(stack stat), stack = tail(stack stat) } 
                    in update >> return True
-    LOAD       ->  let update = if not(Map.member (head(stack stat)) (regs stat)) then notAllocated 
-                                else set stat{stack = regs stat ! head(stack stat) : tail(stack stat), pc = pc stat +1 }
+    LOAD       ->  let update = if List.null (stack stat) then emptyStack 
+                                else if not(Map.member (head(stack stat)) (regs stat)) then notAllocated (head(stack stat)) 
+                                     else set stat{stack = regs stat ! head(stack stat) : tail(stack stat), pc = pc stat +1 }
                    in update >> return True
-    STORE      ->  let update = set stat{regs = Map.insert (head(tail(stack stat))) (head(stack stat)) (regs stat), stack = drop 2 (stack stat), pc = pc stat +1 }
+    STORE      ->  let update = if not(Map.member (head(stack stat)) (regs stat)) then notAllocated (head(stack stat)) 
+                                else if length[(stack stat)] >= 2 then set stat{regs = Map.insert (head(tail(stack stat))) (head(stack stat)) (regs stat), stack = drop 2 (stack stat), pc = pc stat +1 } 
+                                else stackLTE2Elem "STORE"
                    in update >> return True
     HALT       ->  return False 
-    CJMP a     ->  let update = if head(stack stat) < 0 then set stat{stack = tail(stack stat), pc = a} else set stat{stack = tail(stack stat), pc = pc stat +1} 
+    CJMP a     ->  let update = if List.null (stack stat) then emptyStack
+                                else if head(stack stat) < 0 then set stat{stack = tail(stack stat), pc = a} else set stat{stack = tail(stack stat), pc = pc stat +1} 
                    in update >> return True
     FEJL       -> fail "something went the wrong, plus ping is a protocol"
   --   FORK       ->  False
@@ -170,11 +180,14 @@ swapStack xs = let (a,b) = (head xs,head(tail xs))
 emptyStack :: MSM ()
 emptyStack = fail "Stack is empty"
 
-stackGTE2elem :: Stack -> Bool
-stackGTE2elem xs = if length[xs] >= 2 then True else False
+stackLTE2Elem :: String -> MSM ()
+stackLTE2Elem s = fail ("Not enough variables on stack for " ++ s ++ " operation")
 
-notAllocated :: MSM ()
-notAllocated = fail "register not allocated"   
+notAllocated :: Int -> MSM ()
+notAllocated x = fail ("register " ++ show(x) ++ " not allocated")
+
+alreadyAllocated :: Int -> MSM ()
+alreadyAllocated x = fail ("register " ++ show(x) ++ " already allocated")  
 
  
 
@@ -188,7 +201,7 @@ runMSM p = let (MSM f) = interp
 -- example program, when it terminates it leaves 42 on the top of the stack
 p42 = [NEWREG 0, PUSH 1, DUP, NEG, ADD, PUSH 40, STORE, PUSH 2, PUSH 0, LOAD, ADD, HALT]
 p11 =[PUSH 1,DUP,ADD,NEG,PUSH 44,NEWREG 0, STORE,PUSH (-2) ,LOAD,HALT] 
-pCjmp = [PUSH 1,PUSH (-1), CJMP 5,PUSH 4, ADD, DUP, NEG, HALT]
+ppCjmp = [PUSH 1,PUSH (-1), CJMP 5,PUSH 4, ADD, DUP, NEG, HALT]
 pLOng =[PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1, HALT]
 pFejl = [FEJL]
 pEmpty = [POP, HALT]
