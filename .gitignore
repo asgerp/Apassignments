@@ -1,1 +1,9 @@
 .DS_STORE
+*.toc
+*.synctex.gz
+*.mtc
+*.mtc0
+*.maf
+*.log
+*.aux
+report.pdf
