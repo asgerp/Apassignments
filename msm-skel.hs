@@ -69,7 +69,7 @@ newtype MSM a = MSM (State -> Either String (a,State))
 instance Monad MSM where
     -- (>>=) :: MSM a -> (a -> MSM b) -> MSM b
     (MSM p) >>= k = MSM (\s -> case p s of
-                            Right ( v) -> let Right (r, state1) = p s;
+                            Right v -> let Right (r, state1) = p s;
                                                (MSM p1) = k r
                                          in p1 state1
                             Left v -> Left v
