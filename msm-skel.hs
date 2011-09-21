@@ -26,6 +26,7 @@ data Inst
     | FORK
     | READ Int
     | WRITE Int
+    | FEJL
     deriving (Eq,Show)
  
 -- | The type `Prog` represents programs for the MSM.
@@ -67,9 +68,20 @@ newtype MSM a = MSM (State -> Either String (a,State))
 
 instance Monad MSM where
     -- (>>=) :: MSM a -> (a -> MSM b) -> MSM b
-    (MSM p) >>= k = MSM (\s -> let Right (r, state1) = p s
-                                   (MSM p1) = k r 
-                               in p1 state1)
+    (MSM p) >>= k = MSM (\s -> case p s of
+                            Right ( v) -> let Right (r, state1) = p s;
+                                               (MSM p1) = k r
+                                         in p1 state1
+                            Left v -> Left v
+                            )
+                          
+                          --let Right (r, state1) = p s
+                            --       (MSM p1) = k r 
+                              -- in p1 state1)
+    
+--    let Right (r, state1) = p s
+--                                   (MSM p1) = k r 
+--                               in p1 state1)
 
     -- return :: a -> MSM a
     return a = MSM (\x -> Right (a,x))
@@ -83,7 +95,7 @@ get = MSM (\x -> Right (x,x))
 
 -- | set a new state for the running MSM.
 set :: State -> MSM ()
-set m| Trace.trace("called set state " ++ show m) False = undefined
+--set m| Trace.trace("called set state " ++ show m) False = undefined
 set m = MSM (\x -> Right ((),m))
 
 -- | modify the state for the running MSM according to
@@ -116,7 +128,7 @@ interp = run
 -- generel logic: get the current state do the instruction, update values in state
 -- to new state and set the new state to the current lastly return MSM True or MSM False
 interpInst :: Inst -> MSM Bool
-interpInst inst | Trace.trace("called interpinst with inst "++ show inst) False = undefined
+--interpInst inst | Trace.trace("called interpinst with inst "++ show inst) False = undefined
 interpInst inst = do
   stat <- get
   case inst of
@@ -136,13 +148,14 @@ interpInst inst = do
                    in update >> return True
     JMP        ->  let update = set stat{pc = head(stack stat), stack = tail(stack stat) } 
                    in update >> return True
-    LOAD       ->  let update = set stat{stack = regs stat ! (head(stack stat)) : tail(stack stat), pc = pc stat +1 }
+    LOAD       ->  let update = set stat{stack = regs stat ! head(stack stat) : tail(stack stat), pc = pc stat +1 }
                    in update >> return True
     STORE      ->  let update = set stat{regs = Map.insert (head(tail(stack stat))) (head(stack stat)) (regs stat), stack = drop 2 (stack stat), pc = pc stat +1 }
                    in update >> return True
     HALT       ->  return False 
-    CJMP a     ->  let update = if (head(stack stat)) < 0 then set stat{stack = tail(stack stat), pc = a} else set stat{stack = tail(stack stat), pc = pc stat +1} 
+    CJMP a     ->  let update = if head(stack stat) < 0 then set stat{stack = tail(stack stat), pc = a} else set stat{stack = tail(stack stat), pc = pc stat +1} 
                    in update >> return True
+    FEJL       -> fail "something went the wrong, plus ping is a protocol"
   --   FORK       ->  False
   --   READ a     ->  False
   --   WRITE a    ->  False
@@ -162,3 +175,7 @@ runMSM p = let (MSM f) = interp
 p42 = [NEWREG 0, PUSH 1, DUP, NEG, ADD, PUSH 40, STORE, PUSH 2, PUSH 0, LOAD, ADD, HALT]
 p11 =[PUSH 1,DUP,ADD,NEG,PUSH 44,NEWREG 0, STORE,PUSH (-2) ,LOAD,HALT] 
 pCjmp = [PUSH 1,PUSH (-1), CJMP 5,PUSH 4, ADD, DUP, NEG, HALT]
+pLOng =[PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1, HALT]
+pFejl = [FEJL]
+
+
