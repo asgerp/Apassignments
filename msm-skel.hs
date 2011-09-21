@@ -21,6 +21,8 @@ data Inst
     | STORE  
     | NEG  
     | ADD  
+    | MULT
+    | SUB
     | JMP
     | CJMP Int
     | HALT
@@ -73,17 +75,9 @@ instance Monad MSM where
                             Right v -> let Right (r, state1) = p s;
                                                (MSM p1) = k r
                                          in p1 state1
-                            Left v -> Left v
+                            Left v -> Left ("Error: " ++ v)
                             )
-                          
-                          --let Right (r, state1) = p s
-                            --       (MSM p1) = k r 
-                              -- in p1 state1)
-    
---    let Right (r, state1) = p s
---                                   (MSM p1) = k r 
---                               in p1 state1)
-
+ 
     -- return :: a -> MSM a
     return a = MSM (\x -> Right (a,x))
     
@@ -133,10 +127,12 @@ interpInst :: Inst -> MSM Bool
 interpInst inst = do
   stat <- get
   case inst of
-    PUSH a     ->  let update = set stat{stack = a:stack stat, pc = pc stat +1} 
-                   in update >> return True
+    PUSH a     ->  
+      do 
+        set stat{stack = a:stack stat, pc = pc stat +1} 
+        return True
     POP        ->  let update = if List.null (stack stat) then emptyStack 
-                   else set stat{stack = tail $ stack stat, pc = pc stat +1 } 
+                                else set stat{stack = tail $ stack stat, pc = pc stat +1 } 
                    in update >> return True
     DUP        ->  let update = set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } 
                    in update >> return True
@@ -145,6 +141,10 @@ interpInst inst = do
     NEG        ->  let update = set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } 
                    in update >> return True
     ADD        ->  let update = set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+                   in update >> return True
+    MULT       ->  let update = set stat{stack = head(stack stat) * head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+                   in update >> return True
+    SUB       ->  let update = set stat{stack = head(stack stat) - head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
                    in update >> return True
     NEWREG a   ->  let update = set stat{regs = Map.insert a 0 (regs stat), pc = pc stat + 1 } 
                    in update >> return True
@@ -171,7 +171,7 @@ emptyStack :: MSM ()
 emptyStack = fail "Stack is empty"
 
 stackGTE2elem :: Stack -> Bool
-stackGTE2elem xs = if length[xs] >= 2 then True else False
+stackGTE2elem xs = length[xs] >= 2 
 
 notAllocated :: MSM ()
 notAllocated = fail "register not allocated"   
@@ -186,9 +186,20 @@ runMSM p = let (MSM f) = interp
 
 
 -- example program, when it terminates it leaves 42 on the top of the stack
-p42 = [NEWREG 0, PUSH 1, DUP, NEG, ADD, PUSH 40, STORE, PUSH 2, PUSH 0, LOAD, ADD, HALT]
-p11 =[PUSH 1,DUP,ADD,NEG,PUSH 44,NEWREG 0, STORE,PUSH (-2) ,LOAD,HALT] 
+p42 = runMSM [NEWREG 0, PUSH 1, DUP, NEG, ADD, PUSH 40, STORE, PUSH 2, PUSH 0, LOAD, ADD, HALT]
+p11 =runMSM [PUSH 1,DUP,ADD,NEG,PUSH 44,NEWREG 0, STORE,PUSH (-2) ,LOAD,HALT] 
 pCjmp = [PUSH 1,PUSH (-1), CJMP 5,PUSH 4, ADD, DUP, NEG, HALT]
-pLOng =[PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1, HALT]
+pLong =[PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1, HALT]
 pFejl = [FEJL]
 pEmpty = [POP, HALT]
+pMult = [PUSH 3, PUSH 2, MULT, HALT]
+pSub = [PUSH 3, PUSH 2, SUB, HALT]
+pAddFail = [PUSH 5, ADD, HALT]
+
+fib = runMSM [PUSH 5, PUSH 1, PUSH 1,
+       STORE, SWAP, DUP,
+       CJMP 18, PUSH 1, NEG, ADD, SWAP,
+       STORE, LOAD, LOAD, LOAD, ADD,
+       PUSH 3,
+       JMP,
+       POP, HALT]
