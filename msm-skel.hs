@@ -3,6 +3,7 @@ module MSM where
 -- we want to use monads here
 import Control.Monad
 import Data.Maybe
+import Data.List as List
 
 import Debug.Trace as Trace
 
@@ -134,7 +135,8 @@ interpInst inst = do
   case inst of
     PUSH a     ->  let update = set stat{stack = a:stack stat, pc = pc stat +1} 
                    in update >> return True
-    POP        ->  let update = set stat{stack = tail $ stack stat, pc = pc stat +1 } 
+    POP        ->  let update = if List.null (stack stat) then emptyStack 
+                   else set stat{stack = tail $ stack stat, pc = pc stat +1 } 
                    in update >> return True
     DUP        ->  let update = set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } 
                    in update >> return True
@@ -148,7 +150,8 @@ interpInst inst = do
                    in update >> return True
     JMP        ->  let update = set stat{pc = head(stack stat), stack = tail(stack stat) } 
                    in update >> return True
-    LOAD       ->  let update = set stat{stack = regs stat ! head(stack stat) : tail(stack stat), pc = pc stat +1 }
+    LOAD       ->  let update = if not(Map.member (head(stack stat)) (regs stat)) then notAllocated 
+                                else set stat{stack = regs stat ! head(stack stat) : tail(stack stat), pc = pc stat +1 }
                    in update >> return True
     STORE      ->  let update = set stat{regs = Map.insert (head(tail(stack stat))) (head(stack stat)) (regs stat), stack = drop 2 (stack stat), pc = pc stat +1 }
                    in update >> return True
@@ -164,6 +167,17 @@ swapStack :: Stack -> Stack
 swapStack xs = let (a,b) = (head xs,head(tail xs))
  in b : a : drop 2 xs
 
+emptyStack :: MSM ()
+emptyStack = fail "Stack is empty"
+
+stackGTE2elem :: Stack -> Bool
+stackGTE2elem xs = if length[xs] >= 2 then True else False
+
+notAllocated :: MSM ()
+notAllocated = fail "register not allocated"   
+
+ 
+
 -- | Run the given program on the MSM
 runMSM :: Prog -> Either String State
 runMSM p = let (MSM f) = interp
@@ -177,5 +191,4 @@ p11 =[PUSH 1,DUP,ADD,NEG,PUSH 44,NEWREG 0, STORE,PUSH (-2) ,LOAD,HALT]
 pCjmp = [PUSH 1,PUSH (-1), CJMP 5,PUSH 4, ADD, DUP, NEG, HALT]
 pLOng =[PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1, HALT]
 pFejl = [FEJL]
-
-
+pEmpty = [POP, HALT]
