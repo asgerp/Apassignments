@@ -5,6 +5,7 @@ import Control.Monad
 import Data.Maybe
 import Data.List as List
 
+-- used for debugging
 import Debug.Trace as Trace
 
 -- and you might also find Maps useful
@@ -38,10 +39,11 @@ type Prog = [Inst]
 
 -- | The type `Stack` represents the stack of the MSM.
 -- | This is represented by a list of Int's
-type Stack = [Int]
+type Stack = [Int] 
+
 
 -- | Regs is the type for keeping track of registers
--- | This is represented by a list of Int's
+-- | This is represented by a map of Int Int
 type Regs = Map.Map Int Int
 
 
@@ -75,7 +77,7 @@ instance Monad MSM where
                             Right v -> let Right (r, state1) = p s;
                                                (MSM p1) = k r
                                          in p1 state1
-                            Left v -> Left ("Error: " ++ v)
+                            Left v -> Left v
                             )
  
     -- return :: a -> MSM a
@@ -90,7 +92,7 @@ get = MSM (\x -> Right (x,x))
 
 -- | set a new state for the running MSM.
 set :: State -> MSM ()
---set m| Trace.trace("called set state " ++ show m) False = undefined
+set m| Trace.trace("called set state " ++ show m) False = undefined
 set m = MSM (\x -> Right ((),m))
 
 -- | modify the state for the running MSM according to
@@ -120,10 +122,10 @@ interp = run
 -- | This function interprets the given instruction. It returns True
 -- if the MSM is supposed to continue it's execution after this
 -- instruction.
--- generel logic: get the current state do the instruction, update values in state
+-- generel logic: get the current state, do the instruction, update values in state
 -- to new state and set the new state to the current lastly return MSM True or MSM False
 interpInst :: Inst -> MSM Bool
---interpInst inst | Trace.trace("called interpinst with inst "++ show inst) False = undefined
+interpInst inst | Trace.trace("called interpinst with inst "++ show inst) False = undefined
 interpInst inst = do
   stat <- get
   case inst of
@@ -131,26 +133,37 @@ interpInst inst = do
       do 
         set stat{stack = a:stack stat, pc = pc stat +1} 
         return True
-    POP        ->  let update = if List.null (stack stat) then emptyStack 
-                                else set stat{stack = tail $ stack stat, pc = pc stat +1 } 
-                   in update >> return True
-    DUP        ->  let update = if List.null (stack stat) then emptyStack
-                                else set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } 
-                   in update >> return True
-    SWAP       ->  let update = if length[(stack stat)] >= 2 then set stat{stack = swapStack (stack stat), pc = pc stat +1 } 
-                                else stackLTE2Elem "SWAP"
-                   in update >> return True
+    POP        ->  
+      do 
+        if List.null (stack stat) then emptyStack 
+          else set stat{stack = tail $ stack stat, pc = pc stat +1 } 
+        return True
+    DUP        ->  
+      do
+        if List.null (stack stat) then emptyStack
+          else set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } 
+        return True
+    SWAP       ->  
+      do
+        if length( stack stat)  >= 2 then set stat{stack = swapStack (stack stat), pc = pc stat +1 } 
+          else stackLTE2Elem "SWAP"
+        return True
     NEG        ->  let update = if List.null (stack stat) then emptyStack
                                 else set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } 
                    in update >> return True
-    ADD        ->  let update = if length[(stack stat)] >= 2 then set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
-                                else stackLTE2Elem "ADD"
+    ADD        ->  let update = if length (stack stat) < 2 
+                                then stackLTE2Elem "ADD"
+                                else set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
                    in update >> return True
-    MULT       ->  let update = set stat{stack = head(stack stat) * head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+    MULT       ->  let update = if length (stack stat) < 2 
+                                then stackLTE2Elem "MULT"
+                                else set stat{stack = head(stack stat) * head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
                    in update >> return True
-    SUB       ->  let update = set stat{stack = head(stack stat) - head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
-                   in update >> return True
-    NEWREG a   ->  let update = if (Map.member a (regs stat)) then alreadyAllocated a 
+    SUB       ->  let update = if length (stack stat) < 2 
+                               then stackLTE2Elem "SUB"
+                               else set stat{stack = head(stack stat) - head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+                  in update >> return True
+    NEWREG a   ->  let update = if Map.member a (regs stat) then alreadyAllocated a 
                                 else set stat{regs = Map.insert a 0 (regs stat), pc = pc stat + 1 } 
                    in update >> return True
     JMP        ->  let update = if List.null (stack stat) then emptyStack 
@@ -160,8 +173,8 @@ interpInst inst = do
                                 else if not(Map.member (head(stack stat)) (regs stat)) then notAllocated (head(stack stat)) 
                                      else set stat{stack = regs stat ! head(stack stat) : tail(stack stat), pc = pc stat +1 }
                    in update >> return True
-    STORE      ->  let update = if not(Map.member (head(stack stat)) (regs stat)) then notAllocated (head(stack stat)) 
-                                else if length[(stack stat)] >= 2 then set stat{regs = Map.insert (head(tail(stack stat))) (head(stack stat)) (regs stat), stack = drop 2 (stack stat), pc = pc stat +1 } 
+    STORE      ->  let update = if not(Map.member (head(tail(stack stat))) (regs stat)) then notAllocated (head(stack stat)) 
+                                else if length(stack stat) >= 2 then set stat{regs = Map.insert (head(tail(stack stat))) (head(stack stat)) (regs stat), stack = drop 2 (stack stat), pc = pc stat +1 } 
                                 else stackLTE2Elem "STORE"
                    in update >> return True
     HALT       ->  return False 
@@ -184,10 +197,10 @@ stackLTE2Elem :: String -> MSM ()
 stackLTE2Elem s = fail ("Not enough variables on stack for " ++ s ++ " operation")
 
 notAllocated :: Int -> MSM ()
-notAllocated x = fail ("register " ++ show(x) ++ " not allocated")
+notAllocated x = fail ("register " ++ show x  ++ " not allocated")
 
 alreadyAllocated :: Int -> MSM ()
-alreadyAllocated x = fail ("register " ++ show(x) ++ " already allocated")  
+alreadyAllocated x = fail ("register " ++ show x ++ " already allocated")  
 
  
 
@@ -201,13 +214,28 @@ runMSM p = let (MSM f) = interp
 -- example program, when it terminates it leaves 42 on the top of the stack
 p42 = runMSM [NEWREG 0, PUSH 1, DUP, NEG, ADD, PUSH 40, STORE, PUSH 2, PUSH 0, LOAD, ADD, HALT]
 p11 =runMSM [PUSH 1,DUP,ADD,NEG,PUSH 44,NEWREG 0, STORE,PUSH (-2) ,LOAD,HALT] 
-pCjmp = [PUSH 1,PUSH (-1), CJMP 5,PUSH 4, ADD, DUP, NEG, HALT]
-pLong =[PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1, HALT]
+pCjmp =runMSM [PUSH 1,PUSH (-1), CJMP 5,PUSH 4, ADD, DUP, NEG, HALT]
+-- Lots of stuff on the stack
+pLong = runMSM [PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1, HALT]
 pFejl = [FEJL]
 pEmpty = [POP, HALT]
-pMult = [PUSH 3, PUSH 2, MULT, HALT]
-pSub = [PUSH 3, PUSH 2, SUB, HALT]
+ppop = runMSM [PUSH 1,DUP,HALT]
+pMult = runMSM [PUSH 3, PUSH 2, MULT, HALT]
+
+
+-- Sub
+-- When it terminates it leaves 1 on top of the stack
+pSub = runMSM [PUSH 2, PUSH 1, SUB, HALT]
+-- Fails because there is only 1 element in the stack
+pSubFail = runMSM [PUSH 4, SUB, HALT]
+
+-- Add
+-- when it terminates it leaves 6 on top of the stack
+pAdd = runMSM [PUSH 3, PUSH 2, PUSH 1, ADD,ADD, HALT]
+-- Fails because there is only 1 element in the stack
 pAddFail = [PUSH 5, ADD, HALT]
+
+
 
 fib = runMSM [PUSH 5, PUSH 1, PUSH 1,
        STORE, SWAP, DUP,
@@ -216,3 +244,6 @@ fib = runMSM [PUSH 5, PUSH 1, PUSH 1,
        PUSH 3,
        JMP,
        POP, HALT]
+pj =runMSM[ NEWREG 0,NEWREG 1,PUSH 0,PUSH 42,STORE,PUSH 1,PUSH 24,STORE,PUSH 0,PUSH 0,PUSH 1,LOAD,NEG,ADD, CJMP 17, PUSH 29,JMP,PUSH 0,LOAD,ADD,PUSH 1,PUSH 1,LOAD,PUSH 1,NEG,ADD,STORE,PUSH 9,JMP,HALT]
+pk = runMSM [ NEWREG 0,NEWREG 1,PUSH 0,PUSH 10,STORE,PUSH 1,PUSH 5,STORE,PUSH 0,PUSH 0,LOAD,PUSH 0,NEG,ADD,PUSH 1,ADD,NEG,CJMP 20,PUSH 32,JMP,PUSH 0, PUSH 0,LOAD,PUSH 1,LOAD,NEG,ADD,STORE,PUSH 1,ADD,PUSH 9,JMP,PUSH (-1),ADD,PUSH 0,LOAD,PUSH 1,LOAD,ADD,HALT]
+
