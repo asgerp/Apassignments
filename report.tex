@@ -104,9 +104,10 @@ To handle errors we introduced the Either monad as we wrote above. To utilize th
 \end{verbatim}
 where Left values represent errors.\par
 We implemented \textbf{return} as such \begin{verbatim}return a = MSM (\x -> (a,x)\end{verbatim} The State is kept unchanged and a represents a stateful computation that can have different values. \par
-The get, set and modify functions are responsible for retrieving, setting and modifying the state when a program is being run.\par
 
 \subsection{get, set and modify}
+
+The get, set and modify functions are responsible for retrieving, setting and modifying the state when a program is being run.\par
 
 \textbf{Get} is implemented using the lambda function\begin{verbatim} MSM (\x -> Right(x,x)) \end{verbatim}as we need to return the right branch of our Either corresponding to the current state of our MSM.\par
 \textbf{Set} is implemented using the lambda function\begin{verbatim} set m = MSM (\x -> Right ((),m))\end{verbatim} 
