@@ -68,18 +68,49 @@
 \setcounter{tocdepth}{1}
 \tableofcontents
 \newpage
-\section{Implementation} % (fold)
-\label{sec:implementation}
+In the following section we will give a short account of the implementation of the micro state machine (MSM) in Haskell. For the sake of brevity, we will focus on discussing the functions that we find most interesting in our solution.\par
+To implement the \emph{Inst} datatype we just input the missing instruction types from the assignment document: PUSH, POP, DUP, SWAP, NEG, ADD, NEWREG a, JMP, LOAD, STORE, HALT and CJMP i. Additionally, we chose to implement the optional MULT and SUB instructions. \par
+The data type \emph{State} was implemented as a record for us, all we had to do was decide for appropriate type for the record types. As a program is described as a “zero-indexed sequence of instructions” we decided to model it as just that, \emph{Prog = [Inst]}. We modeled the program counter as an \emph{pc = Int} and the stack as a list of Int’s, \emph{Stack = [Int] }. The register, we modeled with a map of Ints, \emph{Regs = Map.Map Int Int}. 
+To initialize a state the function initial aplied to a program. We chose that a newly initialized state should have: the program should be the one given to the function, program counter of 0, an empty stack and an empty map.\par
+To implement the monad, we first had to decide on its type signature. Given a State it should return a value-State pair as such: \begin{verbatim}MSM a = MSM (State -> (a,State))\end{verbatim}. To make sure we would be able to handle errors, we decided to wrap the pair in an Either monad so the final declaration is: \begin{verbatim}MSM a = MSM (State -> Either String (a,State))\end{verbatim}.
+With our newtype in place we can implement monadic functions, bind and return. 
+We will start with \textbf{bind}. We remember that the type signature for the bind function is: 
+\begin{verbatim}MSM a -> (a -> MSM b) -> MSM b\end{verbatim}. We start with our wrapper, \emph{MSM}. We know we should have a function, the statful computation so we start with a lambda, \emph{\\s}. The result of the lambda should be, the result of the stateful computation p on our current state s. That gives us a value-state pair, r and state1. We can then apply the monadic value r on the stateful computation k to get a new stateful computation p1. Lastly we apply the stateful computation p1 on the new state, state1. That gives us: 
+\begin{verbatim}(MSM p) >>= k = MSM ( \s -> let (r, state1) = p s;
+	(MSM p1) = k r
+	in p1 state1
+\end{verbatim}
+We got our inspiration for bind in Learn You a Haskell, Chapter 13, For a Few Monads More.
+To handle errors we introduced the Either monad as we wrote above. To utilize this, the bind functions has to be altered. To do this we use case of, on the result of p s,  getting this:
+\begin{verbatim}
+(MSM p) >>= k MSM (\s -> case p s of
+				Right v -> let Right (r, state1) = p s;
+						(MSM p1) = k r
+						in p1 state1
+				Left v -> Left v
+				)
+\end{verbatim}
+where Left values represent errors.\par
+We implemented \textbf{return} as such \begin{verbatim}return a = MSM (\x -> (a,x)\end{verbatim}. The State is kept unchanged and a represents a stateful computation that can have different values. \par
+The get, set and modify functions are responsible for retrieving, setting and modifying the state when a program is being run.\par
+\textbf{Get} is implemented using the lambda function\begin{verbatim} MSM (\x -> Right(x,x)) \end{verbatim}as we need to return the right branch of our Either corresponding to the current state of our MSM.\par
+\textbf{Set} is implemented using the lambda function\begin{verbatim} set m = MSM (\x -> Right ((),m))\end{verbatim}. In this sense we overwrite the current state by setting it to m.\par
+\textbf{Modify} is implemented using the lambda function \begin{verbatim}modify f = MSM (\s -> Right ((), f s))\end{verbatim}. This time we apply the function \emph{f} to the state inside our MSM monad. \par
+The getInst function provides the MSM instruction the PC is currently pointing to. To ensure we never try to fetch an instruction outside our program, we always first check that the PC points to an instruction within the program, or fail with an error if it does not. The return type is the monadic value MSM Inst, that ensures its usage in the bind function.\par
+\textbf{interpInst} is responsible for interpreting a given instruction, modifying the state of the MSM accordingly and returning True if successful.\par
 
-% section implementation (end)
-\section{Assesment} % (fold)
-\label{sec:assesment}
-
-% section assesment (end)
-\section{Test} % (fold)
-\label{sec:test}
-
-% section test (end)
+We chose to implement the interpreting function as a set of cases, each corresponding to a separate instruction. For each case, a do block makes the appropriate modification to the MSM state and returns the True value if successful. If an illegal instruction is made, an error is returned by calling the fail function we defined earlier in our MSM monad.\par
+\textbf{interpInst} has been implemented to accept all the obligatory instructions from the assignment paper, the MULT instruction and the SUB instruction.\par
+During implementation we found it beneficial to handle certain logic in seperate functions, to increase legibility of our interpInst function. Thus, we implemented the function swapStack to swap the first two elements as part of the SWAP instruction, and a number of smaller functions to call when an instruction fails.\par
+In our implementation we decided it would be most helpful, if failures were reported with the name of the corresponding instruction call, that caused the error in the first place. As such, a program consisting of [PUSH 1, ADD, HALT], returns the error “Not enough variables on stack for ADD operation" using the fail s function in our MSM monad, and causing the program to halt entirely. This form is consistent throughout.\par
+While writing our program we have attempted at all times to keep our data types as simple as possible while doing the job adequately. As such, our stack is just a list of integers instead of a more complicated structure, that does not add substance to the solution. Furthermore, when possible, we have selected built-in structures that best provide the functionality we need; As in our registry which uses a Map of key-value pairs to represent registers and their corresponding contents.\par
+Where possible, we have attempted to write program logic with the simplest notation. As an example we have used Haskell’s guards instead of expansive if-then-else trees.\par
+Finally, we have used state monad constructs to run through the set of instructions that make up an MSM program. Essentially, chaining together the output of a set of functions that change some internal state.\par
+On the basis of the results from the test section below, and our successful usage of the state monad construct to solve the assignment in Haskell, we believe we have a plausibly, good implementation that covers all the obligatory instructions asked for plus some additional, optional instructions.   \par
+We have used HUnit for our testing. Our general strategy conducting the testing of our program has been to produce tests that covers all the instructions. Both their legal actions and the cases where they should produce errors. \par
+We have done this by producing tests that show that cases where the MSM should fail, it does. As well as making tests that show our implementation of the MSM yields correct results when it should.\par
+We decided to use blackbox testing as we believe that the tests we have written cover the different functions rather well. And whitebox testing wouldn’t contribute much insight or show that our program gives the correct results. We made 28 tests that all passed.
+Our tests can be found in the file MSMHUnit.hs. Before every program list, a short description tells what the test should cover and what the result should be. \par
 \bibliographystyle{plain}
 \bibliography{}
 \end{document}
