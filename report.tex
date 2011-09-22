@@ -75,19 +75,19 @@ In the following section we will give a short account of the implementation of t
 
 \subsection{Inst}
 
-To implement the \emph{Inst} datatype we just input the missing instruction types from the assignment document: PUSH, POP, DUP, SWAP, NEG, ADD, NEWREG a, JMP, LOAD, STORE, HALT and CJMP i. Additionally, we chose to implement the optional MULT and SUB instructions. \par
+To implement the Inst datatype we just input the missing instruction types from the assignment document: PUSH, POP, DUP, SWAP, NEG, ADD, NEWREG a, JMP, LOAD, STORE, HALT and CJMP i. Additionally, we chose to implement the optional MULT and SUB instructions. \par
 
 \subsection{State}
 
-The data type \emph{State} was implemented as a record for us, all we had to do was decide on appropriate types for the record types. As a program is described as a “zero-indexed sequence of instructions” we decided to model it as just that, \emph{Prog = [Inst]}. We modeled the program counter as an \emph{pc = Int} and the stack as a list of Int’s, \emph{Stack = [Int] }. The register, we modeled with a map of Ints, \emph{Regs = Map.Map Int Int}. 
+The data type State was implemented as a record for us, all we had to do was decide on appropriate types for the record types. As a program is described as a “zero-indexed sequence of instructions” we decided to model it as just that, Prog = [Inst]. We modeled the program counter as an pc = Int and the stack as a list of Int’s, Stack = [Int] . The register, we modeled with a map of Ints, Regs = Map.Map Int Int. 
 We chose that a newly initialized state should have: the program, program counter of 0 and an empty stack and empty registry.\par
 
 \subsection{Monad MSM}
 
 To implement the monad, we first had to decide on its type signature. Given a State it should return a value-State pair as such: \begin{verbatim}MSM a = MSM (State -> (a,State))\end{verbatim}. To make sure we would be able to handle errors, we decided to wrap the pair in an Either monad so the final declaration is: \begin{verbatim}MSM a = MSM (State -> Either String (a,State))\end{verbatim}.
 With our newtype in place we can implement monadic functions, bind and return. 
-We will start with \textbf{bind}. We remember that the type signature for the bind function is: 
-\begin{verbatim}MSM a -> (a -> MSM b) -> MSM b\end{verbatim}. We start with our wrapper, \emph{MSM}. We know we should have a function, the stateful computation so we start with a lambda, \emph{\\s}. The result of the lambda should be, the result of the stateful computation p on our current state s. That gives us a value-state pair, r and state1. We can then apply the monadic value r on the stateful computation k to get a new stateful computation p1. Lastly we apply the stateful computation p1 on the new state, state1. That gives us: 
+We will start with bind. We remember that the type signature for the bind function is: 
+\begin{verbatim}MSM a -> (a -> MSM b) -> MSM b\end{verbatim}. We start with our wrapper, MSM. We know we should have a function, the stateful computation so we start with a lambda, \\s. The result of the lambda should be, the result of the stateful computation p on our current state s. That gives us a value-state pair, r and state1. We can then apply the monadic value r on the stateful computation k to get a new stateful computation p1. Lastly we apply the stateful computation p1 on the new state, state1. That gives us: 
 \begin{verbatim}(MSM p) >>= k = MSM ( \s -> let (r, state1) = p s;
 	(MSM p1) = k r
 	in p1 state1
@@ -103,25 +103,25 @@ To handle errors we introduced the Either monad as we wrote above. To utilize th
 				)
 \end{verbatim}
 where Left values represent errors.\par
-We implemented \textbf{return} as such \begin{verbatim}return a = MSM (\x -> (a,x)\end{verbatim} The State is kept unchanged and a represents a stateful computation that can have different values. \par
+We implemented return as such \begin{verbatim}return a = MSM (\x -> (a,x)\end{verbatim} The State is kept unchanged and a represents a stateful computation that can have different values. \par
 
 \subsection{get, set and modify}
 
 The get, set and modify functions are responsible for retrieving, setting and modifying the state when a program is being run.\par
 
-\textbf{Get} is implemented using the lambda function\begin{verbatim} MSM (\x -> Right(x,x)) \end{verbatim}as we need to return the right branch of our Either corresponding to the current state of our MSM.\par
-\textbf{Set} is implemented using the lambda function\begin{verbatim} set m = MSM (\x -> Right ((),m))\end{verbatim} 
+Get is implemented using the lambda function\begin{verbatim} MSM (\x -> Right(x,x)) \end{verbatim}as we need to return the right branch of our Either corresponding to the current state of our MSM.\par
+Set is implemented using the lambda function\begin{verbatim} set m = MSM (\x -> Right ((),m))\end{verbatim} 
 In this sense we overwrite the current state by setting it to m.\par
-\textbf{Modify} is implemented using the lambda function \begin{verbatim}modify f = MSM (\s -> Right ((), f s))\end{verbatim} 
+Modify is implemented using the lambda function \begin{verbatim}modify f = MSM (\s -> Right ((), f s))\end{verbatim} 
 This time we apply the function \emph{f} to the state inside our MSM monad. \par
 
 \subsection{getInst}
 
 The getInst function provides the MSM instruction the PC is currently pointing to. To ensure we never try to fetch an instruction outside our program, we always first check that the PC points to an instruction within the program, or fail with an error if it does not. The return type is the monadic value MSM Inst, that ensures its usage in the bind function.\par
-\textbf{interpInst} is responsible for interpreting a given instruction, modifying the state of the MSM accordingly and returning True if successful.\par
+interpInst is responsible for interpreting a given instruction, modifying the state of the MSM accordingly and returning True if successful.\par
 
 We chose to implement the interpreting function as a set of cases, each corresponding to a separate instruction. For each case, a do-block makes the appropriate modification to the MSM state and returns the True value if successful. If an illegal instruction is made, an error is returned by calling the fail function we defined earlier in our MSM monad.\par
-\textbf{interpInst} has been implemented to accept all the obligatory instructions from the assignment paper, the MULT instruction and the SUB instruction.\par
+interpInst has been implemented to accept all the obligatory instructions from the assignment paper, the MULT instruction and the SUB instruction.\par
 During implementation we found it beneficial to handle certain logic in seperate functions, to increase legibility of our interpInst function. Thus, we implemented the function swapStack to swap the first two elements as part of the SWAP instruction, and a number of smaller functions to call when an instruction fails.\par
 
 \subsection{Error protocol}
