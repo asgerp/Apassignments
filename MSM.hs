@@ -30,9 +30,9 @@ data Inst
     | JMP
     | CJMP Int
     | HALT
-    | FORK
-    | READ Int
-    | WRITE Int
+ --   | FORK
+ --   | READ Int
+ --   | WRITE Int
     deriving (Eq,Show)
  
 -- | The type `Prog` represents programs for the MSM.
@@ -125,7 +125,7 @@ interp = run
 -- if the MSM is supposed to continue it's execution after this
 -- instruction.
 -- generel logic: get the current state, do the instruction, update values in state
--- to new state and set the new state to the current lastly return MSM True or MSM False
+-- to new state and set the new state to the current lastly return MSM True, MSM False or fails with message
 interpInst :: Inst -> MSM Bool
 --interpInst inst | Trace.trace("called interpinst with inst "++ show inst) False = undefined
 interpInst inst = do
@@ -199,10 +199,17 @@ interpInst inst = do
   --   READ a     ->  False
   --   WRITE a    ->  False
 
+
+-- helper functions
+
+-- swap two first elements on the stack
+-- only called after check for empty list
 swapStack :: Stack -> Stack
 swapStack xs = let (a,b) = (head xs,head(tail xs))
  in b : a : drop 2 xs
 
+
+-- error reporting
 emptyStack :: MSM ()
 emptyStack = fail "Stack is empty"
 
@@ -210,13 +217,11 @@ stackLTE2Elem :: String -> MSM ()
 stackLTE2Elem s = fail ("Not enough variables on stack for " ++ s ++ " operation")
 
 notAllocated :: Int -> MSM ()
-
 notAllocated x = fail ("register " ++ show x ++ " not allocated")
 
 alreadyAllocated :: Int -> MSM ()
 alreadyAllocated x = fail ("register " ++ show x ++ " already allocated")  
 
- 
 
 -- | Run the given program on the MSM
 runMSM :: Prog -> Either String State
@@ -225,68 +230,3 @@ runMSM p = let (MSM f) = interp
 
 
 
-{-
-p11 =runMSM [PUSH 1,DUP,ADD,NEG,PUSH 44,NEWREG 0, STORE,PUSH (-2) ,LOAD,HALT] 
-pCjmp =runMSM [PUSH 1,PUSH (-1), CJMP 5,PUSH 4, ADD, DUP, NEG, HALT]
--- Lots of stuff on the stack
-pLong = runMSM [PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1,PUSH 1, HALT]
-
-pEmpty = [POP, HALT]
-ppop = runMSM [PUSH 1,DUP,HALT]
-pMult = runMSM [PUSH 3, PUSH 2, MULT, HALT]
-
-fib = runMSM [PUSH 5, PUSH 1, PUSH 1,
-       STORE, SWAP, DUP,
-       CJMP 18, PUSH 1, NEG, ADD, SWAP,
-       STORE, LOAD, LOAD, LOAD, ADD,
-       PUSH 3,
-       JMP,
-       POP, HALT]
-pj =runMSM[ NEWREG 0,NEWREG 1,PUSH 0,PUSH 42,STORE,PUSH 1,PUSH 24,STORE,PUSH 0,PUSH 0,PUSH 1,LOAD,NEG,ADD, CJMP 17, PUSH 29,JMP,PUSH 0,LOAD,ADD,PUSH 1,PUSH 1,LOAD,PUSH 1,NEG,ADD,STORE,PUSH 9,JMP,HALT]
-pk = runMSM [ NEWREG 0,NEWREG 1,PUSH 0,PUSH 10,STORE,PUSH 1,PUSH 5,STORE,PUSH 0,PUSH 0,LOAD,PUSH 0,NEG,ADD,PUSH 1,ADD,NEG,CJMP 20,PUSH 32,JMP,PUSH 0, PUSH 0,LOAD,PUSH 1,LOAD,NEG,ADD,STORE,PUSH 1,ADD,PUSH 9,JMP,PUSH (-1),ADD,PUSH 0,LOAD,PUSH 1,LOAD,ADD,HALT]
-
--- example program, when it terminates it leaves 42 on the top of the stack
-p42 = runMSM [NEWREG 0, PUSH 1, DUP, NEG, ADD, PUSH 40, STORE, PUSH 2, PUSH 0, LOAD, ADD, HALT]
-
--- check error on [] (POP, DUP, LOAD, NEG, JMP, CJMP i) 
-pEmpty0 = runMSM [POP, HALT]
-pEmpty1 = runMSM [DUP, HALT]
-pEmpty2 = runMSM [LOAD, HALT]
-pEmpty3 = runMSM [NEG, HALT]
-pEmpty4 = runMSM [JMP, HALT]
-pEmpty5 = runMSM [CJMP 1, HALT]
-
--- check error on <2 elem (ADD, STORE, SWAP)
-lt2elems0 = runMSM [PUSH 1, ADD, HALT]
-lt2elems1 = runMSM [PUSH 1, STORE, HALT]
-lt2elems2 = runMSM [PUSH 1, SWAP, HALT]
-
--- check error on reg not allocated (LOAD, STORE)
-noReg0 = runMSM [PUSH 1, LOAD, HALT]
-noReg1 = runMSM [PUSH 1, PUSH 1, STORE, HALT]
-
--- check error on already allocated (NEWREG a)
-allocSame = runMSM [NEWREG 1, NEWREG 1, HALT]
-
-
--- PC points outside of program (JMP, CJMP)
-outsideProg0 = runMSM [PUSH 10, JMP, HALT]
-outsideProg1 = runMSM [PUSH (-10), JMP, HALT]
-outsideProg2 = runMSM [PUSH (-10), CJMP 10, HALT]
-outsideProg3 = runMSM [PUSH (-10), CJMP (-10), HALT]
-
--- Sub
--- When it terminates it leaves 1 on top of the stack
-pSub1 = runMSM [PUSH 2, PUSH 1, SUB, HALT]
--- Fails because there is only 1 element in the stack
-pSubFail1 = runMSM [PUSH 4, SUB, HALT]
-
--- Add
--- when it terminates it leaves 6 on top of the stack
-pAdd1 = runMSM [PUSH 3, PUSH 2, PUSH 1, ADD,ADD, HALT]
--- Fails because there is only 1 element in the stack
-pAddFail1 = [PUSH 5, ADD, HALT]
-
-pie = runMSM [ NEWREG 0,NEWREG 1,NEWREG 2,NEWREG 3,PUSH 0,PUSH 28,STORE,PUSH 1,PUSH 1,STORE,PUSH 0,PUSH 0,LOAD,PUSH 1,LOAD,NEG,ADD,PUSH 1,ADD,NEG, CJMP 23,PUSH 80,JMP,PUSH 0,PUSH 2,PUSH 0,LOAD,STORE,PUSH 3,PUSH 1,LOAD,STORE,PUSH 0,PUSH 2,LOAD,PUSH 0,NEG,ADD,PUSH 1,ADD,NEG,CJMP 44, PUSH 56,JMP,PUSH 2,PUSH 2,LOAD,PUSH 3,LOAD,NEG,ADD,STORE,PUSH 1,ADD,PUSH 33,JMP,PUSH (-1),ADD,PUSH 2,LOAD,PUSH 3,LOAD,ADD,SWAP,POP, NEG,ADD,CJMP 72,PUSH 1,ADD,PUSH 72,JMP,PUSH 1,PUSH 1,LOAD,PUSH 1,ADD,STORE,PUSH 11,JMP,HALT]
--}
--- fejler med runMSM []
