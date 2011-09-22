@@ -265,8 +265,7 @@ noReg1 = runMSM [PUSH 1, PUSH 1, STORE, HALT]
 -- check error on already allocated (NEWREG a)
 allocSame = runMSM [NEWREG 1, NEWREG 1, HALT]
 
-
--- PC points outside of program (JMP, CJMP)
+-- check error on PC points outside of program (JMP, CJMP)
 outsideProg0 = runMSM [PUSH 10, JMP, HALT]
 outsideProg1 = runMSM [PUSH (-10), JMP, HALT]
 outsideProg2 = runMSM [PUSH (-10), CJMP 10, HALT]
