@@ -113,7 +113,7 @@ Get is implemented using the lambda function\begin{verbatim} MSM (\x -> Right(x,
 Set is implemented using the lambda function\begin{verbatim} set m = MSM (\x -> Right ((),m))\end{verbatim} 
 In this sense we overwrite the current state by setting it to m.\par
 Modify is implemented using the lambda function \begin{verbatim}modify f = MSM (\s -> Right ((), f s))\end{verbatim} 
-This time we apply the function \emph{f} to the state inside our MSM monad. \par
+This time we apply the function f to the state inside our MSM monad. \par
 
 \subsection{getInst}
 
