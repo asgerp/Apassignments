@@ -1,3 +1,6 @@
+{-
+Author: Asger Pedersen and Kristoffer Cobley
+-}
 module MSM where
 
 -- we want to use monads here
@@ -107,7 +110,7 @@ getInst :: MSM Inst
 getInst = do
   stat <- get
   if pc stat > length ( prog stat) || pc stat < 0
-    then fail "out of bounds"
+    then fail "PC out of bounds"
     else return $ prog stat !! pc stat
 
           
@@ -222,7 +225,7 @@ runMSM p = let (MSM f) = interp
 
 
 
-
+{-
 p11 =runMSM [PUSH 1,DUP,ADD,NEG,PUSH 44,NEWREG 0, STORE,PUSH (-2) ,LOAD,HALT] 
 pCjmp =runMSM [PUSH 1,PUSH (-1), CJMP 5,PUSH 4, ADD, DUP, NEG, HALT]
 -- Lots of stuff on the stack
@@ -285,5 +288,5 @@ pAdd1 = runMSM [PUSH 3, PUSH 2, PUSH 1, ADD,ADD, HALT]
 pAddFail1 = [PUSH 5, ADD, HALT]
 
 pie = runMSM [ NEWREG 0,NEWREG 1,NEWREG 2,NEWREG 3,PUSH 0,PUSH 28,STORE,PUSH 1,PUSH 1,STORE,PUSH 0,PUSH 0,LOAD,PUSH 1,LOAD,NEG,ADD,PUSH 1,ADD,NEG, CJMP 23,PUSH 80,JMP,PUSH 0,PUSH 2,PUSH 0,LOAD,STORE,PUSH 3,PUSH 1,LOAD,STORE,PUSH 0,PUSH 2,LOAD,PUSH 0,NEG,ADD,PUSH 1,ADD,NEG,CJMP 44, PUSH 56,JMP,PUSH 2,PUSH 2,LOAD,PUSH 3,LOAD,NEG,ADD,STORE,PUSH 1,ADD,PUSH 33,JMP,PUSH (-1),ADD,PUSH 2,LOAD,PUSH 3,LOAD,ADD,SWAP,POP, NEG,ADD,CJMP 72,PUSH 1,ADD,PUSH 72,JMP,PUSH 1,PUSH 1,LOAD,PUSH 1,ADD,STORE,PUSH 11,JMP,HALT]
-
+-}
 -- fejler med runMSM []
