@@ -214,8 +214,7 @@ runMSM p = let (MSM f) = interp
 
 
 
--- example program, when it terminates it leaves 42 on the top of the stack
-p42 = runMSM [NEWREG 0, PUSH 1, DUP, NEG, ADD, PUSH 40, STORE, PUSH 2, PUSH 0, LOAD, ADD, HALT]
+
 p11 =runMSM [PUSH 1,DUP,ADD,NEG,PUSH 44,NEWREG 0, STORE,PUSH (-2) ,LOAD,HALT] 
 pCjmp =runMSM [PUSH 1,PUSH (-1), CJMP 5,PUSH 4, ADD, DUP, NEG, HALT]
 -- Lots of stuff on the stack
@@ -250,6 +249,9 @@ fib = runMSM [PUSH 5, PUSH 1, PUSH 1,
 pj =runMSM[ NEWREG 0,NEWREG 1,PUSH 0,PUSH 42,STORE,PUSH 1,PUSH 24,STORE,PUSH 0,PUSH 0,PUSH 1,LOAD,NEG,ADD, CJMP 17, PUSH 29,JMP,PUSH 0,LOAD,ADD,PUSH 1,PUSH 1,LOAD,PUSH 1,NEG,ADD,STORE,PUSH 9,JMP,HALT]
 pk = runMSM [ NEWREG 0,NEWREG 1,PUSH 0,PUSH 10,STORE,PUSH 1,PUSH 5,STORE,PUSH 0,PUSH 0,LOAD,PUSH 0,NEG,ADD,PUSH 1,ADD,NEG,CJMP 20,PUSH 32,JMP,PUSH 0, PUSH 0,LOAD,PUSH 1,LOAD,NEG,ADD,STORE,PUSH 1,ADD,PUSH 9,JMP,PUSH (-1),ADD,PUSH 0,LOAD,PUSH 1,LOAD,ADD,HALT]
 
+-- example program, when it terminates it leaves 42 on the top of the stack
+p42 = runMSM [NEWREG 0, PUSH 1, DUP, NEG, ADD, PUSH 40, STORE, PUSH 2, PUSH 0, LOAD, ADD, HALT]
+
 -- check error on [] (POP, DUP, LOAD, NEG, JMP, CJMP i) 
 pEmpty0 = runMSM [POP, HALT]
 pEmpty1 = runMSM [DUP, HALT]
@@ -270,8 +272,8 @@ noReg1 = runMSM [PUSH 1, PUSH 1, STORE, HALT]
 -- check error on already allocated (NEWREG a)
 allocSame = runMSM [NEWREG 1, NEWREG 1, HALT]
 
--- mangler test med fejl når PC bliver udenfor prog
 
+-- PC points outside of program (JMP, CJMP)
 outsideProg0 = runMSM [PUSH 10, JMP, HALT]
 outsideProg1 = runMSM [PUSH (-10), JMP, HALT]
 outsideProg2 = runMSM [PUSH (-10), CJMP 10, HALT]
@@ -279,15 +281,15 @@ outsideProg3 = runMSM [PUSH (-10), CJMP (-10), HALT]
 
 -- Sub
 -- When it terminates it leaves 1 on top of the stack
-pSub = runMSM [PUSH 2, PUSH 1, SUB, HALT]
+pSub1 = runMSM [PUSH 2, PUSH 1, SUB, HALT]
 -- Fails because there is only 1 element in the stack
-pSubFail = runMSM [PUSH 4, SUB, HALT]
+pSubFail1 = runMSM [PUSH 4, SUB, HALT]
 
 -- Add
 -- when it terminates it leaves 6 on top of the stack
-pAdd = runMSM [PUSH 3, PUSH 2, PUSH 1, ADD,ADD, HALT]
+pAdd1 = runMSM [PUSH 3, PUSH 2, PUSH 1, ADD,ADD, HALT]
 -- Fails because there is only 1 element in the stack
-pAddFail = [PUSH 5, ADD, HALT]
+pAddFail1 = [PUSH 5, ADD, HALT]
 
 
 -- fejler med runMSM []
