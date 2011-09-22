@@ -148,27 +148,36 @@ interpInst inst = do
         if length( stack stat)  >= 2 then set stat{stack = swapStack (stack stat), pc = pc stat +1 } 
           else stackLTE2Elem "SWAP"
         return True
-    NEG        ->  let update = if List.null (stack stat) then emptyStack
-                                else set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } 
-                   in update >> return True
-    ADD        ->  let update = if length (stack stat) < 2 
-                                then stackLTE2Elem "ADD"
-                                else set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
-                   in update >> return True
-    MULT       ->  let update = if length (stack stat) < 2 
-                                then stackLTE2Elem "MULT"
-                                else set stat{stack = head(stack stat) * head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
-                   in update >> return True
-    SUB       ->  let update = if length (stack stat) < 2 
-                               then stackLTE2Elem "SUB"
-                               else set stat{stack = head(stack stat) - head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
-                  in update >> return True
-    NEWREG a   ->  let update = if Map.member a (regs stat) then alreadyAllocated a 
-                                else set stat{regs = Map.insert a 0 (regs stat), pc = pc stat + 1 } 
-                   in update >> return True
-    JMP        ->  let update = if List.null (stack stat) then emptyStack 
-                                else set stat{pc = head(stack stat), stack = tail(stack stat) } 
-                   in update >> return True
+    NEG        ->  
+      do
+        if List.null (stack stat) then emptyStack
+        else set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } 
+        return True
+    ADD        ->
+      do
+        if length (stack stat) < 2 then stackLTE2Elem "ADD"
+           else set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+        return True
+    MULT       ->  
+      do 
+         if length (stack stat) < 2 then stackLTE2Elem "MULT"
+           else set stat{stack = head(stack stat) * head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+         return True
+    SUB       ->
+      do 
+         if length (stack stat) < 2 then stackLTE2Elem "SUB"
+            else set stat{stack = head(stack stat) - head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+         return True
+    NEWREG a   -> 
+      do 
+         if Map.member a (regs stat) then alreadyAllocated a 
+            else set stat{regs = Map.insert a 0 (regs stat), pc = pc stat + 1 } 
+         return True
+    JMP        ->  
+      do 
+         if List.null (stack stat) then emptyStack 
+            else set stat{pc = head(stack stat), stack = tail(stack stat) } 
+         return True
     LOAD       ->  let update | List.null (stack stat) = emptyStack
                               | not (Map.member (head (stack stat)) (regs stat)) = notAllocated (head (stack stat))
                               | otherwise = set stat{stack = regs stat ! head (stack stat) : tail (stack stat), pc = pc stat + 1}
@@ -183,7 +192,7 @@ interpInst inst = do
                               | head (stack stat) < 0 = set stat{stack = tail (stack stat), pc = a}
                               | otherwise = set stat{stack = tail (stack stat), pc = pc stat + 1}
                    in update >> return True
-    _       -> fail "something went the wrong, plus ping is a protocol"
+    _       -> fail "something went the wrong"
   --   FORK       ->  False
   --   READ a     ->  False
   --   WRITE a    ->  False
@@ -223,21 +232,6 @@ pFejl = [FEJL]
 pEmpty = [POP, HALT]
 ppop = runMSM [PUSH 1,DUP,HALT]
 pMult = runMSM [PUSH 3, PUSH 2, MULT, HALT]
-
-
--- Sub
--- When it terminates it leaves 1 on top of the stack
-pSub = runMSM [PUSH 2, PUSH 1, SUB, HALT]
--- Fails because there is only 1 element in the stack
-pSubFail = runMSM [PUSH 4, SUB, HALT]
-
--- Add
--- when it terminates it leaves 6 on top of the stack
-pAdd = runMSM [PUSH 3, PUSH 2, PUSH 1, ADD,ADD, HALT]
--- Fails because there is only 1 element in the stack
-pAddFail = [PUSH 5, ADD, HALT]
-
-
 
 fib = runMSM [PUSH 5, PUSH 1, PUSH 1,
        STORE, SWAP, DUP,
