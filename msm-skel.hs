@@ -133,6 +133,7 @@ interpInst inst = do
       do 
         set stat{stack = a:stack stat, pc = pc stat +1} 
         return True
+<<<<<<< HEAD
     POP        ->  
       do 
         if List.null (stack stat) then emptyStack 
@@ -154,15 +155,36 @@ interpInst inst = do
     ADD        ->  let update = if length (stack stat) < 2 
                                 then stackLTE2Elem "ADD"
                                 else set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+=======
+    POP        ->  let update = if List.null (stack stat) then emptyStack 
+                                else set stat{stack = tail $ stack stat, pc = pc stat +1 } 
+                   in update >> return True
+    DUP        ->  let update = if List.null (stack stat) then emptyStack
+                                else set stat{stack = head( stack stat) : stack stat, pc = pc stat +1 } 
+                   in update >> return True
+    SWAP       ->  let update = if length(stack stat) >= 2 then set stat{stack = swapStack (stack stat), pc = pc stat +1 } 
+                                else stackLTE2Elem "SWAP"
+                   in update >> return True
+    NEG        ->  let update = if List.null (stack stat) then emptyStack
+                                else set stat{stack = head(stack stat)*(-1) : tail(stack stat), pc = pc stat +1 } 
+                   in update >> return True
+    ADD        ->  let update = if length(stack stat) >= 2 then set stat{stack = head(stack stat) + head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+                                else stackLTE2Elem "ADD"
+                   in update >> return True
+    MULT       ->  let update = set stat{stack = head(stack stat) * head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
+>>>>>>> 25a2e9493d70c1f95a83b2b83944aeb91dacec6e
                    in update >> return True
     MULT       ->  let update = if length (stack stat) < 2 
                                 then stackLTE2Elem "MULT"
                                 else set stat{stack = head(stack stat) * head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
                    in update >> return True
+<<<<<<< HEAD
     SUB       ->  let update = if length (stack stat) < 2 
                                then stackLTE2Elem "SUB"
                                else set stat{stack = head(stack stat) - head(tail(stack stat)) : drop 2 (stack stat), pc = pc stat +1 } 
                   in update >> return True
+=======
+>>>>>>> 25a2e9493d70c1f95a83b2b83944aeb91dacec6e
     NEWREG a   ->  let update = if Map.member a (regs stat) then alreadyAllocated a 
                                 else set stat{regs = Map.insert a 0 (regs stat), pc = pc stat + 1 } 
                    in update >> return True
@@ -173,10 +195,16 @@ interpInst inst = do
                               | not (Map.member (head (stack stat)) (regs stat)) = notAllocated (head (stack stat))
                               | otherwise = set stat{stack = regs stat ! head (stack stat) : tail (stack stat), pc = pc stat + 1}
                    in update >> return True
+<<<<<<< HEAD
+    STORE      ->  let update = if not(Map.member (head(tail(stack stat))) (regs stat)) then notAllocated (head(stack stat)) 
+                                else if length(stack stat) >= 2 then set stat{regs = Map.insert (head(tail(stack stat))) (head(stack stat)) (regs stat), stack = drop 2 (stack stat), pc = pc stat +1 } 
+                                else stackLTE2Elem "STORE"
+=======
     STORE      ->  let update | length (stack stat) < 2 = stackLTE2Elem "STORE"
                               | not (Map.member (stack stat !! 1) (regs stat)) = notAllocated (stack stat !! 1) 
                               | otherwise = set stat{regs = Map.insert (stack stat !! 1) (head (stack stat)) (regs stat), 
                                                                         stack = drop 2 (stack stat), pc = pc stat + 1}
+>>>>>>> 25a2e9493d70c1f95a83b2b83944aeb91dacec6e
                    in update >> return True
     HALT       ->  return False 
     CJMP a     ->  let update | stack stat == [] = emptyStack
@@ -199,8 +227,11 @@ stackLTE2Elem :: String -> MSM ()
 stackLTE2Elem s = fail ("Not enough variables on stack for " ++ s ++ " operation")
 
 notAllocated :: Int -> MSM ()
-
+<<<<<<< HEAD
+notAllocated x = fail ("register " ++ show x  ++ " not allocated")
+=======
 notAllocated x = fail ("register " ++ show x ++ " not allocated")
+>>>>>>> 25a2e9493d70c1f95a83b2b83944aeb91dacec6e
 
 alreadyAllocated :: Int -> MSM ()
 alreadyAllocated x = fail ("register " ++ show x ++ " already allocated")  
@@ -247,8 +278,11 @@ fib = runMSM [PUSH 5, PUSH 1, PUSH 1,
        PUSH 3,
        JMP,
        POP, HALT]
+<<<<<<< HEAD
 pj =runMSM[ NEWREG 0,NEWREG 1,PUSH 0,PUSH 42,STORE,PUSH 1,PUSH 24,STORE,PUSH 0,PUSH 0,PUSH 1,LOAD,NEG,ADD, CJMP 17, PUSH 29,JMP,PUSH 0,LOAD,ADD,PUSH 1,PUSH 1,LOAD,PUSH 1,NEG,ADD,STORE,PUSH 9,JMP,HALT]
 pk = runMSM [ NEWREG 0,NEWREG 1,PUSH 0,PUSH 10,STORE,PUSH 1,PUSH 5,STORE,PUSH 0,PUSH 0,LOAD,PUSH 0,NEG,ADD,PUSH 1,ADD,NEG,CJMP 20,PUSH 32,JMP,PUSH 0, PUSH 0,LOAD,PUSH 1,LOAD,NEG,ADD,STORE,PUSH 1,ADD,PUSH 9,JMP,PUSH (-1),ADD,PUSH 0,LOAD,PUSH 1,LOAD,ADD,HALT]
+
+=======
 
 -- check error on [] (POP, DUP, LOAD, NEG, JMP, CJMP i) 
 pEmpty0 = runMSM [POP, HALT]
@@ -291,3 +325,5 @@ pAddFail = [PUSH 5, ADD, HALT]
 
 
 -- fejler med runMSM []
+>>>>>>> fixed STORE bug, used guards for long if trees, many tests
+>>>>>>> 25a2e9493d70c1f95a83b2b83944aeb91dacec6e
