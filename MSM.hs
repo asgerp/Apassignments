@@ -194,7 +194,7 @@ interpInst inst = do
                               | head (stack stat) < 0 = set stat{stack = tail (stack stat), pc = a}
                               | otherwise = set stat{stack = tail (stack stat), pc = pc stat + 1}
                    in update >> return True
-    _       -> fail "something went the wrong"
+--    _       -> fail "something went the wrong"
   --   FORK       ->  False
   --   READ a     ->  False
   --   WRITE a    ->  False
