@@ -29,3 +29,11 @@ natToInt(N,I) :-
     natToInt(N,I1).
 
 
+checkset(X).
+
+
+ismember(X,Y,Z).
+
+union(X,Y,Z).
+
+intersection(X,Y,Z).
