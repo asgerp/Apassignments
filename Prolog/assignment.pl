@@ -29,10 +29,15 @@ natToInt(N,I) :-
     natToInt(N,I1).
 
 
-checkset(X).
+
+%checkset(X), Y U NO WORKY?
+checkset([X,Y|[]]) :- succ(X), succ(Y), less(X,Y); less(Y,X).
+checkset([X,Y|Z]) :- succ(X), succ(Y), checkset([X|Z]), checkset([Y|Z]). 
 
 
-ismember(X,Y,Z).
+% ismember, worky maybe.
+ismember(X,[X|Ys],Z) :- succ(X), checkset([X|Ys]).
+ismember(X,[Y|Ys],Z) :- ismember(X,Ys,Z).
 
 union(X,Y,Z).
 
