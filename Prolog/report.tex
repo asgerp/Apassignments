@@ -90,9 +90,36 @@ X is smaller than head of set. X cant be in the set, Z = no.
 \section{Union} % (fold)
 \label{sec:union}
 
+To implement union\textbackslash3, we first had to identify the possible cases. The following are the cases we have found to hold, given that sets X,Y are ordered, correct natural number sets:
+
+\begin{itemize}
+	\item the union of two empty sets is the empty set.
+	\item the union of a non-empty set X with an empty set must mean the head of X is in the result set. The rest of the solution is found by tail recursion on the remaining Xs.
+	\item the union of an empty set X with a non-empty set Y must mean the head of Y is in the result set. The rest of the solution is found by tail recursion on the remaining Ys.
+	\item If the head of non-empty sets X,Y is the same, the head must be in the result set. The rest of the solution is found by tail recursion on the remaining Xs and Ys.
+	\item If the head of non-empty set X differs from the head of non-empty set Y, and the head of X is less than the head of Y, then the head of X must be in the result set at this point. The rest of the solution is found by tail recursion on the remaining Xs and Y$|$Ys.
+	\item If the head of non-empty set Y differs from the head of non-empty set X, and the head of Y is less than the head of X, then the head of Y must be in the result set at this point. The rest of the solution is found by tail recursion on the remaining X$|$Xs and Ys.  
+
+\end{itemize}
+
+It can be seen that this solution will terminate as each callee must necessarily work on a smaller subproblem.\par   
+
 % section union (end)
 \section{Intersection} % (fold)
 \label{sec:intersection}
+
+To implement intersection\textbackslash3, we first had to identify all the possible cases. The following are the cases we have found to hold, given that sets X,Y are ordered, correct natural number sets:
+
+\begin{itemize}
+	\item the intersection of two empty sets is the empty set.
+	\item if the head of non-empty set X differs from the head of non-empty set Y, and head X is less than head Y, then head X can't possibly be in the result set. We discard head X and recursively call with arguments Xs, Y$|$Ys.
+	\item if the head of non-empty set Y differs from the head of non-empty set X, and head Y is less than head X, then head Y can't possibly be in the result set. We discard head Y and recursively call with arguments X$|$Xs, Ys.
+	\item the intersection of a non-empty set X with the empty set Y means the head of X can't possibly be in the result set. In this case we discard the head of X and recursively call with the tail of X.
+	\item the intersection of a non-empty set Y with the empty set X means the head of Y can't possibly be in the result set. In this case we discard the head of Y and recursively call with the tail of Y.
+
+\end{itemize}
+
+It can be seen that this solution will terminate as each callee must necessarily work on a smaller subproblem.\par
 
 % section intersection (end)
 \section{Tests} % (fold)
