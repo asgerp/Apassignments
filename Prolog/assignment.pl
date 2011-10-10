@@ -144,7 +144,7 @@ test(ismember_no4, [nondet]) :-
 	ismember(N, [z, s(z), s(s(s(z)))], no).
 
 test(ismember_no5, all(Z = [no])) :-
-	ismember(s(s(s(s(z)))), [z, s(z), s(s(s(z)))], no).
+	ismember(s(s(s(s(z)))), [z, s(z), s(s(s(z)))], Z).
 /*
 N = s(s(s(s(_G322)))) ;
 N = s(s(z)) ;
@@ -152,15 +152,15 @@ false.*/
 
 test(ismember_no_yes, [nondet]) :-
 	ismember(N,[s(z),s(s(s(z)))],Z).
-/*N = z,
-Z = yes ;
-N = s(z),
+/*N = s(z),
 Z = yes ;
 N = s(s(s(z))),
 Z = yes ;
-N = s(s(s(s(_G334)))),
+N = s(s(s(s(_G520)))),
 Z = no ;
 N = s(s(z)),
+Z = no ;
+N = z,
 Z = no ;
 false.
 */

@@ -78,7 +78,7 @@ To implement less\textbackslash2 we had to implement a helper predicate, getpred
 % section less (end)
 \section{Checkset} % (fold)
 \label{sec:checkset}
-To implement checkset\textbackslash1 we identified 2 cases and defined a helper predicate succ\textbackslash1. succ\textbackslash1 returns true if succ(z) is called, if it is called succ(s(X)) it will call it self recursively, like this: succ(X). All other cases fail. The cases found for checkset\textbackslash1 are:
+To implement checkset\textbackslash1 we identified 2 cases and defined a helper predicate succ\textbackslash1. succ\textbackslash1. succ\textbackslash1 returns true if succ(z) is called, and will call it self recursively with succ(X) if it is called with s(X). All other cases fail. The cases found for checkset\textbackslash1 are:
 \begin{itemize}
 	\item The set with only one element, X. Checkset\textbackslash1 should succeed if X is a natural number, to ensure this succ\textbackslash1 has to evaluate to true.
 	
@@ -139,12 +139,15 @@ It can be seen that this solution will terminate as each callee must necessarily
 % section intersection (end)
 \section{Tests} % (fold)
 \label{sec:tests}
-We chose to use PLunit to test our solution. Our testing strategy consisted of identifying all the cases in a given predicate and the write tests that covered them all. Mostly this ment all the cases where the predicate should evaluate to true and then the cases where the predicate should fail. \\
-We wrote tests for each predicate and included the tests in the file where we implemented the solution.
+We chose to use PLunit to test our solution. Our testing strategy consisted of identifying all the cases in a given predicate and the write tests that covered them all. Mostly this ment all the cases where the predicate should evaluate to true and then the cases where the predicate should fail. We also included the tests suggested in the assignment. \\
+We wrote tests for each predicate and included the tests in the file where we implemented the solution. \\
+The test are pretty straight forward but some are some what interesting. The test "less_var2" checks that our predicate finds correct answers if we ask less(s(s(x)),X). To get something measurable we had to alter the query a little. As the query would give the answer s(s(s(_GXXX))) we bound X by also asking less(X, s(s(s(s(z)))))). It is also interesting to note that we were not able to use the same tactic while testing the query ismember(N,[s(z),s(s(s(z)))],Z), but we included the test anyway without checks for what values Z and N take.. 
 
 % section tests (end)
 \section{Assesment} % (fold)
 \label{sec:assesment}
+Our program consists of pure rules and fact. None of our predicates goes into infinite loops and all of the them succeed only once.
+
 
 % section assesment (end)
 \bibliographystyle{plain}
