@@ -21,23 +21,23 @@ test(succ_fail, [fail]):-
 % getsucc\2 give successor
 % getpred\2 give predecessor
 %getsucc(X,s(X)).
-getpred(s(X),X).
+getpred(s(X), X).
 
 :- begin_tests(getpredtest).
 
 test(getpred_true1):-
-	getpred(s(z),z).
+	getpred(s(z), z).
 
 test(getpred_true2) :-
-	getpred(s(s(z)),s(z)).
+	getpred(s(s(z)), s(z)).
 
 test(getpred_fail, [fail]) :-
-	getpred(z,s(z)).
+	getpred(z, s(z)).
 
-test(getpred_var1, all(X=[s(z)] )) :-
+test(getpred_var1, all(X = [s(z)])) :-
 	getpred(s(s(z)), X).
 
-test(getpred_var2, all(X=[s(s(s(z)))] )) :-
+test(getpred_var2, all(X = [s(s(s(z)))] )) :-
 	getpred(X, s(s(z))).
 
 :- end_tests(getpredtest).
@@ -46,11 +46,11 @@ test(getpred_var2, all(X=[s(s(s(z)))] )) :-
 
 % less\2
 % get predecessor, call less until either one is z 
-less(z,s(X)).
-less(X,Y) :-
-	getpred(X,Z),
-	getpred(Y,W),
-	less(Z,W).
+less(z, s(X)).
+less(X, Y) :-
+	getpred(X, Z),
+	getpred(Y, W),
+	less(Z, W).
 
 :- begin_tests(lesstest).
 
@@ -61,14 +61,14 @@ test(less_true2) :-
 test(less_true3) :-
 	less(s(z), s(s(z))), !.
 test(less_false1, [fail]) :-
-	less(s(z),z).
+	less(s(z), z).
 test(less_false2) :-
-	 \+ less(s(s(z)),z).
+	 \+ less(s(s(z)), z).
 test(less_var1) :-
 	findall(X, less(X, s(s(s(z)))), Xs),
-	Xs == [z,s(z),s(s(z))].
+	Xs == [z, s(z), s(s(z))].
 test(less_var2) :-
-	findall(X, (less(s(s(z)),X),less(X,s(s(s(s(z)))))), Xs),
+	findall(X, (less(s(s(z)), X), less(X, s(s(s(s(z)))))), Xs),
 	Xs == [s(s(s(z)))].
 
 :- end_tests(lesstest).
@@ -86,18 +86,18 @@ checkset([X, Y|Z]) :-
 test(checkset_false, [fail]):-
 	checkset([]).
 test(checkset_false, [fail]):-
-	 checkset([z,s(s(z)),s(z),s(s(s(z)))]).
+	 checkset([z, s(s(z)), s(z), s(s(s(z)))]).
 test(checkset_true1):-
 	 checkset([z]), !.
 test(checkset_true2):-
-	checkset([z,s(z)]), !.
+	checkset([z, s(z)]), !.
 test(checkset_true2):-
-	checkset([z,s(z),s(s(s(z)))]), !.
+	checkset([z, s(z), s(s(s(z)))]), !.
 test(checkset_true3):-
-	checkset([z,s(z),s(s(z)),s(s(s(z)))]), !.
+	checkset([z, s(z), s(s(z)), s(s(s(z)))]), !.
 test(checkset_var1) :-
-	findall(X, checkset([X,s(s(z)),s(s(s(z)))]), Xs),
-	Xs == [z,s(z)].
+	findall(X, checkset([X, s(s(z)), s(s(s(z)))]), Xs),
+	Xs == [z, s(z)].
 
 :- end_tests(checksettest).
 
@@ -109,10 +109,10 @@ test(checkset_var1) :-
 ismember(X, [], no).
 ismember(X, [X|Ys], yes).
 ismember(X, [Y|Ys], Z) :-
-	less(Y,X),
+	less(Y, X),
 	ismember(X, Ys, Z).
-ismember(X, [Y|Ys],no) :-
-	less(X,Y).
+ismember(X, [Y|Ys], no) :-
+	less(X, Y).
 
 :- begin_tests(ismembertest).
 
@@ -129,7 +129,7 @@ test(ismember_yes4, all(Z = [yes])) :-
 	ismember(z, [z], Z).
 
 test(ismember_yes4, all(Z = [z, s(z), s(s(s(z)))])) :-
-	ismember(N,[z,s(z),s(s(s(z)))],yes).
+	ismember(N, [z, s(z), s(s(s(z)))], yes).
 
 test(ismember_no1, all(Z = [no])) :-
 	ismember(s(s(s(z))), [s(z)], Z).

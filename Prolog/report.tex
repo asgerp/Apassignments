@@ -78,11 +78,14 @@ To implement less\textbackslash2 we had to implement a helper predicate, getpred
 % section less (end)
 \section{Checkset} % (fold)
 \label{sec:checkset}
-
+To cases, only one element in set, Check that that element is natural number, else check that the head of the set is smaller than the next element and call checkset recursively on the tail. transitivity ensures x < y, y < z => x < z.
 % section checkset (end)
 \section{Ismember} % (fold)
 \label{sec:ismember}
-
+Four cases, X is member of empty set. Z = no,
+X is head of the set, Z = yes.
+X is bigger than  head in the set, call ismember recursively on tail.
+X is smaller than head of set. X cant be in the set, Z = no.
 % section ismember (end)
 \section{Union} % (fold)
 \label{sec:union}
