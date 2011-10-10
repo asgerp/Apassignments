@@ -78,14 +78,24 @@ To implement less\textbackslash2 we had to implement a helper predicate, getpred
 % section less (end)
 \section{Checkset} % (fold)
 \label{sec:checkset}
-To cases, only one element in set, Check that that element is natural number, else check that the head of the set is smaller than the next element and call checkset recursively on the tail. transitivity ensures x < y, y < z => x < z.
+To implement checkset\textbackslash1 we identified 2 cases and defined a helper predicate succ\textbackslash1. succ\textbackslash1 returns true if succ(z) is called, if it is called succ(s(X)) it will call it self recursively, like this: succ(X). All other cases fail. The cases found for checkset\textbackslash1 are:
+\begin{itemize}
+	\item The set with only one element, X. Checkset\textbackslash1 should succeed if X is a natural number, to ensure this succ\textbackslash1 has to evaluate to true.
+	
+	\item The set with strictly more than one elements, $[X,Y|Z]$. Checkset\textbackslash1 should succeed if less(X,Y) and checkset($[Y|Z]$) are true. This via transitivity ensures that the list is ordered and less also  ensures that the elements are natural numbers.
+\end{itemize}	
+
 % section checkset (end)
 \section{Ismember} % (fold)
 \label{sec:ismember}
-Four cases, X is member of empty set. Z = no,
-X is head of the set, Z = yes.
-X is bigger than  head in the set, call ismember recursively on tail.
-X is smaller than head of set. X cant be in the set, Z = no.
+To implement ismember\textbackslash3 we identified 4 cases:
+\begin{itemize}
+	\item The set we are asking about is empty, therefore X can't be a member of the set. $t_3$ is "no".
+	\item X is in the head of the set. $t_3$ is "yes", because as the set is ordered we know that X is a member and we don't have to search further.
+	\item X is bigger than the head of the set. We know that we have not passed X, but we can't be certain if it will be in the set so we call ismember\textbackslash3 recursively on the tail of the set.
+	\item X is less than the head of the set. Because the set is ordered we know X is not in the set. $t_3$ is "no".
+\end{itemize}
+The query ismember(N, [s(z),s(s(s(z)))],A) should return all the solutions to the queries ismember(N,[s(z),s(s(s(z)))],yes) and ismember(N,[s(z),s(s(s(z)))],no). Our implementation returns the solutions for yes first, then returns the solutions for no. 
 % section ismember (end)
 \section{Union} % (fold)
 \label{sec:union}
@@ -129,6 +139,8 @@ It can be seen that this solution will terminate as each callee must necessarily
 % section intersection (end)
 \section{Tests} % (fold)
 \label{sec:tests}
+We chose to use PLunit to test our solution. Our testing strategy consisted of identifying all the cases in a given predicate and the write tests that covered them all. Mostly this ment all the cases where the predicate should evaluate to true and then the cases where the predicate should fail. \\
+We wrote tests for each predicate and included the tests in the file where we implemented the solution.
 
 % section tests (end)
 \section{Assesment} % (fold)
