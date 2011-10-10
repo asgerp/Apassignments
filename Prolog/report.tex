@@ -1,0 +1,105 @@
+%
+%  untitled
+%
+%  Created by Asger Pedersen on 2011-10-10.
+%  Copyright (c) 2011 . All rights reserved.
+%
+\documentclass[]{article}
+
+% Use utf-8 encoding for foreign characters
+\usepackage[utf8]{inputenc}
+
+% Setup for fullpage use
+\usepackage{fullpage}
+
+% Uncomment some of the following if you use the features
+%
+% Running Headers and footers
+%\usepackage{fancyhdr}
+
+% Multipart figures
+%\usepackage{subfigure}
+
+% More symbols
+%\usepackage{amsmath}
+\usepackage{amssymb}
+%\usepackage{latexsym}
+
+% Surround parts of graphics with box
+\usepackage{boxedminipage}
+
+% Package for including code in the document
+\usepackage{listings}
+
+% If you want to generate a toc for each chapter (use with book)
+\usepackage{minitoc}
+
+% This is now the recommended way for checking for PDFLaTeX:
+\usepackage{ifpdf}
+
+%\newif\ifpdf
+%\ifx\pdfoutput\undefined
+%\pdffalse % we are not running PDFLaTeX
+%\else
+%\pdfoutput=1 % we are running PDFLaTeX
+%\pdftrue
+%\fi
+
+\ifpdf
+\usepackage[pdftex]{graphicx}
+\else
+\usepackage{graphicx}
+\fi
+\title{Number sets in Prolog}
+\author{ Asger Pedersen And Kristoffer Cobley}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2ex}
+\linespread{1.3}
+
+\begin{document}
+
+\ifpdf
+\DeclareGraphicsExtensions{.pdf, .jpg, .tif}
+\else
+\DeclareGraphicsExtensions{.eps, .jpg}
+\fi
+
+\maketitle
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+\section{Introduction} % (fold)
+\label{sec:introduction}
+In the following sections we will give a short account of the implementation of the number set predicates in Prolog. After that we will explain how we tested the predicates and lastly give an overall assesment of our implementation.
+% section introduction (end)
+\section{Less} % (fold)
+\label{sec:less}
+To implement less\textbackslash2 we had to implement a helper predicate, getpred\textbackslash2, that gives the predecessor of a natural number, getpred(s(X),X). Less\textbackslash2 then works by "substracting" 1 from each of the terms and calling less recursively on the new terms. To stop the recursion we have a base fact, less(z,s(X)). That ensures that less(z,z) would fail. Calling less(s(x),z) would also fail because it would not be matched by getpred\textbackslash2.
+% section less (end)
+\section{Checkset} % (fold)
+\label{sec:checkset}
+
+% section checkset (end)
+\section{Ismember} % (fold)
+\label{sec:ismember}
+
+% section ismember (end)
+\section{Union} % (fold)
+\label{sec:union}
+
+% section union (end)
+\section{Intersection} % (fold)
+\label{sec:intersection}
+
+% section intersection (end)
+\section{Tests} % (fold)
+\label{sec:tests}
+
+% section tests (end)
+\section{Assesment} % (fold)
+\label{sec:assesment}
+
+% section assesment (end)
+\bibliographystyle{plain}
+\bibliography{}
+\end{document}
