@@ -6,13 +6,17 @@
 succ(z).
 succ(s(N)) :- succ(N).
 
+% returns true
 :- begin_tests(succtest).
 test(succ_true1):-
 	succ(z).
+% return true
 test(succ_true2) :-
 	succ(s(z)).
+% returns X = z; X = s(z)...
 test(succ_true3, [nondet]):-
 	succ(X).
+% return false
 test(succ_fail, [fail]):-
 	succ(a).
 :- end_tests(succtest).
@@ -25,18 +29,23 @@ getpred(s(X), X).
 
 :- begin_tests(getpredtest).
 
+%returns true
 test(getpred_true1):-
 	getpred(s(z), z).
 
+% returns true
 test(getpred_true2) :-
 	getpred(s(s(z)), s(z)).
 
+% return false
 test(getpred_fail, [fail]) :-
 	getpred(z, s(z)).
 
+% returns X = s(z)
 test(getpred_var1, all(X = [s(z)])) :-
 	getpred(s(s(z)), X).
 
+% returns X = s(s(s(z)))
 test(getpred_var2, all(X = [s(s(s(z)))] )) :-
 	getpred(X, s(s(z))).
 
@@ -54,19 +63,27 @@ less(X, Y) :-
 
 :- begin_tests(lesstest).
 
+% returns true
 test(less_true1) :-
 	less(z, s(z)), !.
+% returns true
 test(less_true2) :-
 	less(z, s(s(z))), !.
+% returns true
 test(less_true3) :-
 	less(s(z), s(s(z))), !.
+% returns false
 test(less_false1, [fail]) :-
 	less(s(z), z).
+% returns false
 test(less_false2) :-
 	 \+ less(s(s(z)), z).
+
+% returns X = z; X = s(z); X = s(s(z))
 test(less_var1) :-
 	findall(X, less(X, s(s(s(z)))), Xs),
 	Xs == [z, s(z), s(s(z))].
+% returna X = s(s(s(z)))
 test(less_var2) :-
 	findall(X, (less(s(s(z)), X), less(X, s(s(s(s(z)))))), Xs),
 	Xs == [s(s(s(z)))].
@@ -83,18 +100,31 @@ checkset([X, Y|Z]) :-
 	checkset([Y|Z]).
 
 :- begin_tests(checksettest).
+
+% returns false
 test(checkset_false, [fail]):-
 	checkset([]).
+
+% returns false
 test(checkset_false, [fail]):-
 	 checkset([z, s(s(z)), s(z), s(s(s(z)))]).
+
+% returns true
 test(checkset_true1):-
 	 checkset([z]), !.
+
+% returns true
 test(checkset_true2):-
 	checkset([z, s(z)]), !.
+
+% returns true
 test(checkset_true2):-
 	checkset([z, s(z), s(s(s(z)))]), !.
+
+% returns true
 test(checkset_true3):-
 	checkset([z, s(z), s(s(z)), s(s(s(z)))]), !.
+% returns X = z; X = s(z)
 test(checkset_var1) :-
 	findall(X, checkset([X, s(s(z)), s(s(s(z)))]), Xs),
 	Xs == [z, s(z)].
@@ -116,54 +146,48 @@ ismember(X, [Y|Ys], no) :-
 
 :- begin_tests(ismembertest).
 
+% returns Z = yes
 test(ismember_yes1, all(Z = [yes])) :-
 	ismember(s(z), [s(z), s(s(s(z)))], Z).
-
+% returns Z = yes
 test(ismember_yes2, all(Z = [yes])) :-
 	ismember(s(s(s(z))), [s(z), s(s(s(z)))], Z).
-
+% returns Z = yes
 test(ismember_yes3, all(Z = [yes])) :-
 	ismember(s(s(s(z))), [s(z), s(s(s(z))), s(s(s(s(z))))], Z).
-
+% returns Z = yes
 test(ismember_yes4, all(Z = [yes])) :-
 	ismember(z, [z], Z).
-
+% returns Z = z; Z = s(z); Z = s(s(s(z)))
 test(ismember_yes4, all(Z = [z, s(z), s(s(s(z)))])) :-
 	ismember(N, [z, s(z), s(s(s(z)))], yes).
 
+% returns Z = no
 test(ismember_no1, all(Z = [no])) :-
 	ismember(s(s(s(z))), [s(z)], Z).
-
+% returns Z = no
 test(ismember_no2, all(Z = [no])) :-
 	ismember(z, [s(z)], Z).
-
+% returns Z = no
 test(ismember_no3, all(Z = [no])) :-
 	ismember(z, [], Z).
-
-test(ismember_no4, [nondet]) :-
-	ismember(N, [z, s(z), s(s(s(z)))], no).
-
+% returns N = s(s(z)); N = s(s(s(s(z))))
+test(ismember_no4, all(N = [s(s(s(s(z)))), s(s(z))])) :-
+	ismember(N, [z, s(z), s(s(s(z)))], no),less(N,s(s(s(s(s(z)))))).
+% returns Z = no
 test(ismember_no5, all(Z = [no])) :-
 	ismember(s(s(s(s(z)))), [z, s(z), s(s(s(z)))], Z).
-/*
-N = s(s(s(s(_G322)))) ;
-N = s(s(z)) ;
-false.*/
 
-test(ismember_no_yes, [nondet]) :-
-	ismember(N,[s(z),s(s(s(z)))],Z).
-/*N = s(z),
-Z = yes ;
-N = s(s(s(z))),
-Z = yes ;
-N = s(s(s(s(_G520)))),
-Z = no ;
-N = s(s(z)),
-Z = no ;
-N = z,
-Z = no ;
-false.
-*/
+% returns N = s(z), Z = yes; N = s(s(s(z))), Z = yes;
+% N = s(s(s(s(z)))), Z = no; N = s(s(z)), Z = no; N = z, Z = no
+test(ismember_no_yes, all(N = [s(z), s(s(s(z))), s(s(s(s(z)))), s(s(z)), z])) :-
+	ismember(N,[s(z),s(s(s(z)))],Z), less(N,s(s(s(s(s(z)))))).
+
+% returns N = s(z), Z = yes; N = s(s(s(z))), Z = yes;
+% N = s(s(s(s(z)))), Z = no; N = s(s(z)), Z = no; N = z, Z = no
+test(ismember_no_yes, all(Z = [yes, yes, no, no, no])) :-
+	ismember(N,[s(z),s(s(s(z)))],Z), less(N,s(s(s(s(s(z)))))).
+
 :- end_tests(ismembertest).
 
 % union
@@ -183,34 +207,43 @@ union([X|Xs],[Y|Ys],[Y|Z]) :-
 
 
 :- begin_tests(uniontest).
-
+% returns X = [z]
 test(union_true1, all(X = [[z]])) :-
 	union([z],[z], X).
 
+% returns X = [z, s(z), s(s(z)), s(s(s(z)))]
 test(union_true2, all(X = [[z, s(z), s(s(z)), s(s(s(z)))]])) :-	
 	union([z, s(z), s(s(z))], [s(z), s(s(z)), s(s(s(z)))], X).
 
+% returns X = [z, s(z), s(s(z)), s(s(s(z))), s(s(s(s(z))))]
 test(union_true3, all(X = [[z, s(z), s(s(z)), s(s(s(z))), s(s(s(s(z))))]])) :-	
 	union([z, s(z), s(s(z))], [s(s(s(z))), s(s(s(s(z))))], X).
 
+% returns X = [z, s(z), s(s(z)), s(s(s(z)))]
 test(union_true4, all(X = [[z, s(z), s(s(z)), s(s(s(z)))]])) :-
 	union([z, s(s(z))], [s(z), s(s(s(z)))], X).
 
+% returns X = [z]
 test(union_true5, all(X = [[z]])):-
 	union([], [z], Z).
 
+% returns X = [z]
 test(union_true6, all(X = [[z]])):-
 	union([z], [], Z).
 
+% returns X [z, s(z), s(s(z))], X = [z, s(s(z))], X = [s(z), s(s(z))], X = [s(s(z))]
 test(union_true7, all(X = [[z, s(z), s(s(z))], [z, s(s(z))], [s(z), s(s(z))], [s(s(z))]])) :-
 	union(X, [z,s(z)], [z,s(z),s(s(z))]).
 
+% returns X = [z, s(z)], X = [s(z)]
 test(union_true8, all(X = [[z, s(z)], [s(z)]])) :-
 	union([z], X, [z,s(z)]).
 
+% returns false
 test(union_fail1, [fail]) :-
 	union([z, s(z)], [z], [z]).
 
+% returns false
 test(union_fail2, [fail]) :-
 	union([], [], [z]).
 
@@ -232,30 +265,40 @@ intersect([], [Y|Ys], Z) :-
 intersect([],[],[]). % profit
 
 :-begin_tests(intersectiontest).
+
+% returns X = [z]
 test(intersection_true1, all(X = [[z]])) :-
 	   intersection([z], [z], X).
 
+% returns X = [z, s(z), s(s(z))]
 test(intersection_true2, all(X = [[z, s(z), s(s(z))]])) :-
 	intersection([z, s(z), s(s(z))], [z, s(z), s(s(z))], X).
 
+% returns X = []
 test(intersection_true3, all(X = [[]])) :-
 	   intersection([z], [s(z)], X).
 
+% returns X = []
 test(intersection_true4, all(X = [[]])) :-
 	intersection([], [z], X).
 
+% returns X = []
 test(intersection_true5, all(X = [[]])) :-
 	   intersection([z], [], X).
 
+% returns X = [[s(s(z))]]
 test(intersection_true6, all(X = [[s(s(z))]])) :-
 	intersection([z, s(s(z)), s(s(s(s(z))))], [s(z), s(s(z)), s(s(s(z)))], X).
 
+% returns true
 test(intersection_true7) :-
 	intersection([], [], []).
 
+% returns false
 test(intersection_fail1, [fail]) :-
 	intersection([z],[s(z)],[s(z)]).
 
+% returns false
 test(intersection_fail2, [fail]) :-
 	intersection([z],[],[s(z)]).
 
