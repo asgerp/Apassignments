@@ -79,6 +79,9 @@ test(less_false1, [fail]) :-
 test(less_false2) :-
 	 \+ less(s(s(z)), z).
 
+test(less_false3) :-
+	\+ less(s(z),s(z)).
+
 % returns X = z; X = s(z); X = s(s(z))
 test(less_var1) :-
 	findall(X, less(X, s(s(s(z)))), Xs),
@@ -87,6 +90,7 @@ test(less_var1) :-
 test(less_var2) :-
 	findall(X, (less(s(s(z)), X), less(X, s(s(s(s(z)))))), Xs),
 	Xs == [s(s(s(z)))].
+
 
 :- end_tests(lesstest).
 
