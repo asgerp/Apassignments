@@ -70,7 +70,7 @@
 \newpage
 \section{Introduction} % (fold)
 \label{sec:introduction}
-In the following sections we will give a short account of the implementation of the number set predicates in Prolog. After that we will explain how we tested the predicates and lastly give an overall assesment of our implementation.
+In the following sections we will give a short account of our implementation of the number set predicates in Prolog. After that we will explain how we tested the predicates and lastly give an overall assesment of our implementation.
 % section introduction (end)
 \section{Implementation}
 \subsection{Less} % (fold)
@@ -79,7 +79,7 @@ To implement less\textbackslash2 we had to implement a helper predicate, getpred
 % subsection less (end)
 \subsection{Checkset} % (fold)
 \label{sec:checkset}
-To implement checkset\textbackslash1 we identified 2 cases and defined a helper predicate succ\textbackslash1. succ\textbackslash1. succ\textbackslash1 returns true if succ(z) is called, and will call it self recursively with succ(X) if it is called with s(X). All other cases fail. The cases found for checkset\textbackslash1 are:
+To implement checkset\textbackslash1 we identified 2 cases and defined a helper predicate succ\textbackslash1. succ\textbackslash1 returns true if succ(z) is called, and will call it self recursively with succ(X) if it is called with s(X). All other cases fail. The cases found for checkset\textbackslash1 are:
 \begin{itemize}
 	\item The set with only one element, X. Checkset\textbackslash1 should succeed if X is a natural number, to ensure this succ\textbackslash1 has to evaluate to true.
 	
@@ -144,13 +144,13 @@ We chose to use PLunit to test our solution. Our testing strategy consisted of i
 We wrote tests for each predicate and included the tests in the file where we implemented the solution. \\
 
 The test are pretty straight forward but some are some what interesting. The test "less\_var2" checks that our predicate finds correct answers if we ask less(s(s(x)),X). To get something measurable we had to alter the query a little. As the query would give the answer s(s(s(\_GXXX))) we bound X by also asking less(X, s(s(s(s(z)))))). It is also interesting to note that we were not able to use the exact same tactic while testing the query ismember(N,[s(z),s(s(s(z)))],Z), but had to do it in two steps that each checks for what values Z and N take. In testing union we made sure to test for uninstantiated variables for $t_1$, $t_2$ and $t_3$. As we have not implemented this for intersect we did not test this, safe for $t_3$.\\
-We constructed 54 tests that all yield the expected result.
+We constructed 55 tests that all yield the expected result.
 
 % section tests (end)
 \section{Assesment} % (fold)
 \label{sec:assesment}
 As the assignment stated, our program consist only of pure rules and facts. We have tried to eliminate redundant rules and facts, and as far as we can see we have none, but we might have missed some.
-Our program consists of pure rules and fact. None of our predicates enter into infinite loops and all of the them succeed only once.
+None of our predicates enter into infinite loops and all of the them succeed only once.
 For every predicate we have attempted to write rules based on similar mathematical definitions. This and our thorough testing leads us to believe we have achieved in solving the exercise well.\par
 
 % section assesment (end)
