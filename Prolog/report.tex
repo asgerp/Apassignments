@@ -72,11 +72,12 @@
 \label{sec:introduction}
 In the following sections we will give a short account of the implementation of the number set predicates in Prolog. After that we will explain how we tested the predicates and lastly give an overall assesment of our implementation.
 % section introduction (end)
-\section{Less} % (fold)
+\section{Implementation}
+\subsection{Less} % (fold)
 \label{sec:less}
 To implement less\textbackslash2 we had to implement a helper predicate, getpred\textbackslash2, that gives the predecessor of a natural number, getpred(s(X),X). Less\textbackslash2 then works by "substracting" 1 from each of the terms and calling less recursively on the new terms. To stop the recursion we have a base fact, less(z,s(X)). That ensures that less(z,z) would fail. Calling less(s(x),z) would also fail because it would not be matched by getpred\textbackslash2.
-% section less (end)
-\section{Checkset} % (fold)
+% subsection less (end)
+\subsection{Checkset} % (fold)
 \label{sec:checkset}
 To implement checkset\textbackslash1 we identified 2 cases and defined a helper predicate succ\textbackslash1. succ\textbackslash1. succ\textbackslash1 returns true if succ(z) is called, and will call it self recursively with succ(X) if it is called with s(X). All other cases fail. The cases found for checkset\textbackslash1 are:
 \begin{itemize}
@@ -85,8 +86,8 @@ To implement checkset\textbackslash1 we identified 2 cases and defined a helper 
 	\item The set with strictly more than one elements, $[X,Y|Z]$. Checkset\textbackslash1 should succeed if less(X,Y) and checkset($[Y|Z]$) are true. This via transitivity ensures that the list is ordered and less also  ensures that the elements are natural numbers.
 \end{itemize}	
 
-% section checkset (end)
-\section{Ismember} % (fold)
+% subsection checkset (end)
+\subsection{Ismember} % (fold)
 \label{sec:ismember}
 To implement ismember\textbackslash3 we identified 4 cases:
 \begin{itemize}
@@ -96,8 +97,8 @@ To implement ismember\textbackslash3 we identified 4 cases:
 	\item X is less than the head of the set. Because the set is ordered we know X is not in the set. $t_3$ is "no".
 \end{itemize}
 The query ismember(N, [s(z),s(s(s(z)))],A) should return all the solutions to the queries ismember(N,[s(z),s(s(s(z)))],yes) and ismember(N,[s(z),s(s(s(z)))],no). Our implementation returns the solutions for yes first, then returns the solutions for no. 
-% section ismember (end)
-\section{Union} % (fold)
+% subsection ismember (end)
+\subsection{Union} % (fold)
 \label{sec:union}
 
 To implement union\textbackslash3, we first had to identify the possible cases. The following are the cases we have found to hold, given that sets X,Y are ordered, correct natural number sets:
@@ -119,8 +120,8 @@ To implement union\textbackslash3, we first had to identify the possible cases. 
 
 It can be seen that this solution will terminate as each callee must necessarily work on a smaller subproblem.\par   
 
-% section union (end)
-\section{Intersection} % (fold)
+% subsection union (end)
+\subsection{Intersection} % (fold)
 \label{sec:intersection}
 
 To implement intersection\textbackslash3, we first had to identify all the possible cases. The following are the cases we have found to hold, given that sets X,Y are ordered, correct natural number sets:
@@ -136,14 +137,14 @@ To implement intersection\textbackslash3, we first had to identify all the possi
 
 It can be seen that this solution will terminate as each callee must necessarily work on a smaller subproblem.\par
 
-% section intersection (end)
+% subsection intersection (end)
 \section{Tests} % (fold)
 \label{sec:tests}
 We chose to use PLunit to test our solution. Our testing strategy consisted of identifying all the cases in a given predicate and the write tests that covered them all. Mostly this ment all the cases where the predicate should evaluate to true and then the cases where the predicate should fail. We also included the tests suggested in the assignment. \\
 We wrote tests for each predicate and included the tests in the file where we implemented the solution. \\
 
-The test are pretty straight forward but some are some what interesting. The test "less\_var2" checks that our predicate finds correct answers if we ask less(s(s(x)),X). To get something measurable we had to alter the query a little. As the query would give the answer s(s(s(\_GXXX))) we bound X by also asking less(X, s(s(s(s(z)))))). It is also interesting to note that we were not able to use the same tactic while testing the query ismember(N,[s(z),s(s(s(z)))],Z), but we included the test anyway without checks for what values Z and N take. In testing union we made sure to test for uninstantiated variables for $t_1$, $t_2$ and $t_3$. As we have not implemented this for intersect we did not test this, safe for $t_3$.\\
-We constructed 53 tests that all yield the expected result.
+The test are pretty straight forward but some are some what interesting. The test "less\_var2" checks that our predicate finds correct answers if we ask less(s(s(x)),X). To get something measurable we had to alter the query a little. As the query would give the answer s(s(s(\_GXXX))) we bound X by also asking less(X, s(s(s(s(z)))))). It is also interesting to note that we were not able to use the exact same tactic while testing the query ismember(N,[s(z),s(s(s(z)))],Z), but had to do it in two steps that each checks for what values Z and N take. In testing union we made sure to test for uninstantiated variables for $t_1$, $t_2$ and $t_3$. As we have not implemented this for intersect we did not test this, safe for $t_3$.\\
+We constructed 54 tests that all yield the expected result.
 
 % section tests (end)
 \section{Assesment} % (fold)
