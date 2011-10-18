@@ -1,11 +1,15 @@
 %%%-------------------------------------------------------------------
-%%% @author Ken Friis Larsen <kflarsen@diku.dk>
+%%% @implementors Asger Pedersen and Kristoffer Cobley
+%%% @auther Ken Friis Larsen  
 %%% @copyright (C) 2011, Ken Friis Larsen
 %%% Created : Oct 2011 by Ken Friis Larsen <kflarsen@diku.dk>
 %%%-------------------------------------------------------------------
--module(mr).
+-module(mr_skel).
 
 -export([start/1, stop/1, job/5]).
+
+%%%% Notes:
+%%% 
 
 %%%% Interface
 
@@ -14,14 +18,17 @@ start(N) ->
     spawn(fun() -> coordinator_loop(Reducer, Mappers) end).
 
 
+%%% TODO stop the damn thing
 stop(Pid) -> ....
-
+    
+    
+%%% Coordinator id
 job(CPid, MapFun, RedFun, RedInit, Data) -> ....
 
 
 %%%% Internal implementation
 
-
+%%% TODO Make N mappers and one reducer
 init(N) -> ....
 
 
@@ -58,7 +65,7 @@ data_async(Pid, D) ->
 
 
 %%% Coordinator
-
+%%% also not stop and default
 coordinator_loop(Reducer, Mappers) ->
     receive
 	{From, stop} ->
@@ -68,6 +75,7 @@ coordinator_loop(Reducer, Mappers) ->
 	    reply_ok(From);
 	....
     end.
+
 
 
 send_data(Mappers, Data) ->
@@ -82,7 +90,7 @@ send_loop(Mappers, [], Data) ->
 
 
 %%% Reducer
-
+%%% reduce case, and default
 reducer_loop() ->
     receive
 	stop -> 
@@ -91,6 +99,7 @@ reducer_loop() ->
         ....
     end.
 
+%%% get data from mappers
 gather_data_from_mappers(Fun, Acc, Missing) ->
     receive
 	...
@@ -98,7 +107,7 @@ gather_data_from_mappers(Fun, Acc, Missing) ->
 
 
 %%% Mapper
-
+%%% continue
 mapper_loop(Reducer, Fun) ->
     receive
 	stop -> 
