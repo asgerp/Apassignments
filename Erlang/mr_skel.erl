@@ -27,8 +27,8 @@ stop(Pid) ->
 job(CPid, MapFun, RedFun, RedInit, Data) -> 
     io:format("job~n"),
     rpc(CPid, {init, MapFun, RedFun, RedInit, Data}),
-    io:format("kuku~n"),
-    Res = rpc(CPid, {start,Data}) .
+    io:format("kuk kuk~n"),
+    rpc(CPid, {start,Data}) .
     
 
 %%%% Internal implementation
@@ -84,11 +84,11 @@ coordinator_loop(Reducer, Mappers) ->
 	    reply_ok(From);
 	{From, {init, MapFun, RedFun, RedInit, Data}} ->
 	    io:format("coord init~n"),
-	    %reply_ok(From),
-	    Len = lists:length(Data),
+	    Len = length(Data),
 	    info(Reducer,{start,RedFun, RedInit, Len}),
-	    io:format("coord red~n"),
+	    io:format("coord reducer started~n"),
 	    loop(Mappers, MapFun),
+	    reply_ok(From),
 	    coordinator_loop(Reducer, Mappers);
 	{From, {start, Data}} ->
 	    io:format("coord start~n"),
@@ -102,7 +102,8 @@ coordinator_loop(Reducer, Mappers) ->
     end.
 
 loop([Mid|Mappers], MapFun)->
-    info(Mid, {init, MapFun}),
+    io:format("loop the loop~n"),
+    info(Mid, {self(), {init, MapFun}}),
     loop(Mappers, MapFun).
 loop([]) ->
     done.
@@ -153,11 +154,15 @@ mapper_loop(Reducer, Fun) ->
 	    ok;
 	{From, {init, NewFun}} ->
 	    io:format("mapper init~n"),
-	    info(From,ok),
+	    reply_ok(From),
+	    Check = NewFun(1),
+	    io:format("p~ ~n", Check),
 	    mapper_loop(Reducer, NewFun);
-	{From, {data, Data}} ->
+	{data, Data} ->
 	    io:format("mapper data~n"),
+	    io:format("~p ~n",[Fun]),
 	    Res = lists:map(Fun, Data),
+	    io:format("mapper data done~n"),
 	    info(Reducer, {result, Res}),
 	    mapper_loop(Reducer, Fun);
 	Unknown ->
