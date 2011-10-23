@@ -6,32 +6,28 @@
 %%%-------------------------------------------------------------------
 -module(mr_skel).
 
--export([start/1, stop/1, job/5, test_sum/0, test_start/0, test_job/0, init/1]).
+-export([start/1, stop/1, job/5, test_sum/0, test_job/0, init/1]).
 
-%%%% Notes:
-%%% 
-
-%%%% Interface
-
+%%% Start the MapReducer with N mappers, returns ok, Pid of the coordinator
 start(N) ->
     {Reducer, Mappers} = init(N),
     {ok, spawn(fun() -> coordinator_loop(Reducer, Mappers) end)}.
 
 
-%%% TODO stop the damn thing
+%%% Stop the MapReducer with coordinator Pid
 stop(Pid) -> 
     info(Pid,stop).
     
     
-%%% Coordinator id
+%%% Define a MapReduce job
 job(CPid, MapFun, RedFun, RedInit, Data) -> 
     rpc(CPid, {init, MapFun, RedFun, RedInit, Data}),
-    rpc(CPid, {start,Data}) .
+    {ok, Res} = rpc(CPid, {start,Data}) .
     
 
 %%%% Internal implementation
 
-%%% TODO Make N mappers and one reducer
+%%% Make N mappers and one reducer
 init(N) ->  
     init(N,spawn(fun() -> reducer_loop() end),[]).
 init(N,Red,Map) when N > 0 ->
@@ -40,7 +36,6 @@ init(0,Red,Map) -> {Red,Map}.
 
 
 %% synchronous communication
-
 rpc(Pid, Request) ->
     Pid ! {self(), Request},
     receive
@@ -84,7 +79,7 @@ coordinator_loop(Reducer, Mappers) ->
 	{From, {init, MapFun, RedFun, RedInit, Data}} ->
 	    io:format("coord init~n"),
 	    Len = length(Data),
-	    info(Reducer,{self(),{start,RedFun, RedInit, Len}}),
+	    info(Reducer,{self(),{start,RedFun, RedInit, Len, From}}),
 	    io:format("coord reducer started~n"),
 	    loop(Mappers, MapFun),
 	    io:format("mappers online~n"),
@@ -94,17 +89,16 @@ coordinator_loop(Reducer, Mappers) ->
 	    io:format("coord start~n"),
 	    send_data(Mappers, Data),
 	    coordinator_loop(Reducer, Mappers);
-	{From, {done, Result}} ->
+	{From, {done, Result, Jid}} ->
 	    io:format("got a result: ~p ~n",[Result]),
-	    %reply_ok(From),
-	    {ok, Result}
+	    reply_ok(Jid, Result)
     end.
 
 loop([Mid|Mappers], MapFun)->
    io:format("loop the loop~n"),
    info(Mid, {self(), {init, MapFun}}),
    loop(Mappers, MapFun);
-loop([],MapFun) ->
+loop([],_) ->
    done.
 
 
@@ -120,33 +114,29 @@ send_loop(Mappers, [], Data) ->
 
 
 %%% Reducer
-%%% reduce case, and default
 reducer_loop() ->
     io:format("im da reducer biarch ~p~n", [self()]),
     receive
 	stop -> 
 	    io:format("Reducer ~p stopping~n", [self()]),
 	    ok;
-	{From, {start, RedFun, RedInit, Len}} ->
+	{From, {start, RedFun, RedInit, Len, Jid}} ->
 	    io:format("reduce start~n"),
 	    reply_ok(From),
-	    OverAllRes = gather_data_from_mappers(RedFun, RedInit, Len),
-	    io:format("done gathering ~n"),
-	    info(From, {self(),{done, OverAllRes}}),
-	    io:format("waiting ~p ~n",[From]),
+	    {stop_gather, OverAllRes} = gather_data_from_mappers(RedFun, RedInit, Len),
+	    io:format("done gathering ~p ~n", [OverAllRes]),
+	    info(From, {self(),{done, OverAllRes, Jid}}),
 	    reducer_loop()
     end.
 
 %%% get data from mappers
 gather_data_from_mappers(Fun, Acc, Missing) ->
     receive
-	{stop_gather,Acc} ->
-	    io:format("imma stop ~n"),
+	{stop_gather, Acc} ->
 	    Acc;
 	{From, {result, ChunkOfData}} ->
 	    Res = (lists:foldl(Fun, Acc, ChunkOfData)),
-	    Miss = Missing -1,
-	    io:format("~p ~n", [Miss]),
+	    Miss = Missing - 1,
 	    if Miss >= 1 ->
 		    gather_data_from_mappers(Fun, Res, Miss);
 	       true -> info(self(),{stop_gather,Res})
@@ -163,8 +153,6 @@ mapper_loop(Reducer, Fun) ->
 	{From, {init, NewFun}} ->
 	    io:format("mapper ~p init~n",[self()]),
 	    reply_ok(From),
-	    Check = NewFun(1),
-	    %io:format("p~ ~n", [Check]),
 	    io:format("mapper init done ~n"),
 	    mapper_loop(Reducer, NewFun);
 	{data, Data} ->
@@ -185,7 +173,6 @@ test_sum() ->
                        fun(X,Acc) -> X+Acc end,
                        0,
                        lists:seq(1,10)),
-    io:format("DONE WITH SUM~n"),
     {ok, Fac} = mr_skel:job(MR,
                        fun(X) -> X end,
 		       fun(X,Acc) -> X*Acc end,
@@ -194,14 +181,13 @@ test_sum() ->
     mr_skel:stop(MR),
     {Sum, Fac}.
 
-test_start() ->
-    {ok, MR} = mr_skel:start(3).
-
 test_job() ->
     {ok, MR} = mr_skel:start(3),
-    Sum = mr_skel:job(MR,
+    {ok, Sum} = mr_skel:job(MR,
                        fun(X) -> X end,
                        fun(X,Acc) -> X+Acc end,
                        0,
-                       lists:seq(1,10)).
+		      lists:seq(1,10)),
+    mr_skel:stop(MR),
+    Sum.
 	
