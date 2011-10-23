@@ -6,7 +6,7 @@
 %%%-------------------------------------------------------------------
 -module(mr_skel).
 
--export([start/1, stop/1, job/5, test_sum/0, test_job/0, init/1, test_fac/0]).
+-export([start/1, stop/1, job/5, test_sum/0, test_job/0, init/1, test_fac/0,total_words/0, list_of_tracks/2, word_data/0]).
 
 %%% Start the MapReducer with N mappers, returns ok, Pid of the coordinator
 start(N) ->
@@ -69,7 +69,6 @@ data_async(Pid, D) ->
 %%% Coordinator
 %%% also not stop and default
 coordinator_loop(Reducer, Mappers) ->
-    io:format("coord ~p online~n", [self()]),
     receive
 	{From, stop} ->
 	    io:format("~p stopping~n", [self()]),
@@ -77,30 +76,24 @@ coordinator_loop(Reducer, Mappers) ->
 	    stop_async(Reducer),
 	    reply_ok(From);
 	{From, {init, MapFun, RedFun, RedInit, Data}} ->
-	    io:format("coord init~n"),
 	    Len = length(Data),
 	    info(Reducer,{self(),{start,RedFun, RedInit, Len, From}}),
-	    io:format("coord reducer started~n"),
 	    loop(Mappers, MapFun),
-	    io:format("mappers online~n"),
 	    reply_ok(From),
 	    coordinator_loop(Reducer, Mappers);
 	{From, {start, Data}} ->
-	    io:format("coord start~n"),
 	    send_data(Mappers, Data),
 	    coordinator_loop(Reducer, Mappers);
 	{From, {done, Result, Jid}} ->
-	    io:format("got a result: ~p ~n",[Result]),
 	    reply_ok(Jid, Result),
 	    coordinator_loop(Reducer, Mappers)
     end.
 
 loop([Mid|Mappers], MapFun)->
-   io:format("loop the loop~n"),
-   info(Mid, {self(), {init, MapFun}}),
-   loop(Mappers, MapFun);
+    info(Mid, {self(), {init, MapFun}}),
+    loop(Mappers, MapFun);
 loop([],_) ->
-   done.
+    done.
 
 
 send_data(Mappers, Data) ->
@@ -116,15 +109,12 @@ send_loop(Mappers, [], Data) ->
 
 %%% Reducer
 reducer_loop() ->
-    io:format("im da reducer biarch ~p~n", [self()]),
     receive
 	stop -> 
 	    io:format("Reducer ~p stopping~n", [self()]),
 	    ok;
 	{From, {start, RedFun, RedInit, Len, Jid}} ->
-	    io:format("reduce start~n"),
 	    {stop_gather, OverAllRes} = gather_data_from_mappers(RedFun, RedInit, Len),
-	    io:format("done gathering ~p ~n", [OverAllRes]),
 	    info(From, {self(),{done, OverAllRes, Jid}}),
 	    reducer_loop()
     end.
@@ -151,14 +141,10 @@ mapper_loop(Reducer, Fun) ->
 	    io:format("Mapper ~p stopping~n", [self()]),
 	    ok;
 	{From, {init, NewFun}} ->
-	    io:format("mapper ~p init~n",[self()]),
 	    reply_ok(From),
-	    io:format("mapper init done ~n"),
 	    mapper_loop(Reducer, NewFun);
 	{data, Data} ->
-	    io:format("mapper data~n"),
 	    Res = lists:map(Fun,lists:flatten([Data])),
-	    io:format("mapper data done ~p ~n", [Reducer]),
 	    info(Reducer,{self(), {result, Res}}),
 	    mapper_loop(Reducer, Fun);
 	Unknown ->
@@ -184,19 +170,51 @@ test_sum() ->
 test_job() ->
     {ok, MR} = mr_skel:start(3),
     {ok, Sum} = mr_skel:job(MR,
-                       fun(X) -> X end,
-                       fun(X,Acc) -> X+Acc end,
-                       0,
-		      lists:seq(1,1000)),
+			    fun(X) -> X end,
+			    fun(X,Acc) -> X+Acc end,
+			    0,
+			    lists:seq(1,10000)),
     mr_skel:stop(MR),
     Sum.
 	
 test_fac() ->
     {ok, MR} = mr_skel:start(3),
     {ok, Fac} = mr_skel:job(MR,
-                       fun(X) -> X end,
-		       fun(X,Acc) -> X*Acc end,
-		       1,
-		       lists:seq(1,10)),
+			    fun(X) -> X end,
+			    fun(X,Acc) -> X*Acc end,
+			    1,
+			    lists:seq(1,10)),
     mr_skel:stop(MR),
     Fac.
+wordcount([H | _]) ->
+    Cnt = element(2,H).
+
+list_of_tracks([],CleanTracks)->
+    CleanTracks;
+list_of_tracks([H | Tail],CleanTracks) ->
+    Track = read_mxm:parse_track(H),
+    Words = element(3,Track),
+    Clean = Words++CleanTracks,
+    list_of_tracks(Tail, Clean).
+    
+
+word_data() ->
+    WordData = read_mxm:from_file("mxm_dataset_test.txt"),
+    Tracks = element(2,WordData),
+    list_of_tracks(Tracks,[]).
+%%% 44846399
+total_words() ->
+    Now = erlang:now(),
+    {ok, MR}        = mr_skel:start(25),
+    {ok, NoOfWords} = mr_skel:job(MR,
+				  fun(H) -> Cnt = element(2,H) end,
+				  fun(X,Acc)   -> X+Acc end,
+				  0,
+				  Data = word_data()),
+    mr_skel:stop(MR),
+    Done = erlang:now(),
+    Time = timer:now_diff(Done, Now),
+    {Time, NoOfWords}.
+				  
+					  
+					  
