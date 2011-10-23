@@ -6,7 +6,7 @@
 %%%-------------------------------------------------------------------
 -module(mr_skel).
 
--export([start/1, stop/1, job/5, test_sum/0, test_job/0, init/1]).
+-export([start/1, stop/1, job/5, test_sum/0, test_job/0, init/1, test_fac/0]).
 
 %%% Start the MapReducer with N mappers, returns ok, Pid of the coordinator
 start(N) ->
@@ -22,7 +22,7 @@ stop(Pid) ->
 %%% Define a MapReduce job
 job(CPid, MapFun, RedFun, RedInit, Data) -> 
     rpc(CPid, {init, MapFun, RedFun, RedInit, Data}),
-    {ok, Res} = rpc(CPid, {start,Data}) .
+    {ok, Res} = rpc(CPid, {start,Data}).
     
 
 %%%% Internal implementation
@@ -91,7 +91,8 @@ coordinator_loop(Reducer, Mappers) ->
 	    coordinator_loop(Reducer, Mappers);
 	{From, {done, Result, Jid}} ->
 	    io:format("got a result: ~p ~n",[Result]),
-	    reply_ok(Jid, Result)
+	    reply_ok(Jid, Result),
+	    coordinator_loop(Reducer, Mappers)
     end.
 
 loop([Mid|Mappers], MapFun)->
@@ -122,7 +123,6 @@ reducer_loop() ->
 	    ok;
 	{From, {start, RedFun, RedInit, Len, Jid}} ->
 	    io:format("reduce start~n"),
-	    reply_ok(From),
 	    {stop_gather, OverAllRes} = gather_data_from_mappers(RedFun, RedInit, Len),
 	    io:format("done gathering ~p ~n", [OverAllRes]),
 	    info(From, {self(),{done, OverAllRes, Jid}}),
@@ -187,7 +187,16 @@ test_job() ->
                        fun(X) -> X end,
                        fun(X,Acc) -> X+Acc end,
                        0,
-		      lists:seq(1,10)),
+		      lists:seq(1,1000)),
     mr_skel:stop(MR),
     Sum.
 	
+test_fac() ->
+    {ok, MR} = mr_skel:start(3),
+    {ok, Fac} = mr_skel:job(MR,
+                       fun(X) -> X end,
+		       fun(X,Acc) -> X*Acc end,
+		       1,
+		       lists:seq(1,10)),
+    mr_skel:stop(MR),
+    Fac.
