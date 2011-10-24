@@ -195,18 +195,15 @@ test_fac() ->
 
 
 list_of_tracks([],CleanTracks)->
-%    io:format("clean ~p~n", [CleanTracks]),
     CleanTracks;
 list_of_tracks([H | Tail],CleanTracks) ->
     Track = read_mxm:parse_track(H),
     Words = element(3,Track),
-    %Clean = [Words]++CleanTracks,
     list_of_tracks(Tail, [Words|CleanTracks]).
     
 
 word_data() ->
     Now = erlang:now(),
-%    io:format("start redading at ~p", [Now]),
     WordData = read_mxm:from_file("mxm_dataset_test.txt"),
     Tracks = element(2,WordData),
     Res = list_of_tracks(Tracks,[]),
@@ -214,6 +211,7 @@ word_data() ->
     Time = timer:now_diff(Then, Now),
     io:format(" time: ~p~n",[Time/1000000]),
     Res.
+
 %%% 44846399
 total_words() ->
     Now = erlang:now(),
@@ -263,16 +261,34 @@ avg() ->
 				     end,
 				     {0,0},
 				     Data),
-%    {ok, AvgWords} = mr_skel:job(MR,
-%				     fun(X)  -> length(X) end,
-%				     fun(X, Acc) -> {Words, Songs} = Acc,
-%						    {Words + X, Songs +1}
-%%				     end,
-%				     {0,0},
-%				     word_data2()),
+    {ok, AvgWords} = mr_skel:job(MR,
+				 fun(X)  -> lists:foldl(fun(Y, Acc) -> element(2,Y)+Acc end, 0 ,X) end,
+				 fun(X, Acc) -> {Words, Songs} = Acc,
+						{Words + X, Songs +1}
+				 end,
+				 {0,0},
+				 Data),
     mr_skel:stop(MR),
     {W, S} = AvgDiffWords,
+    {Ws, Ss} = AvgWords,
     Done = erlang:now(),
     Time = timer:now_diff(Done, Now),
     io:format("MapReduce time: ~p~n",[Time/1000000]),
-    W/S.
+    {W/S, Ws/Ss}.
+
+grep(Word)->
+    Data = word_data2(),
+    Now = erlang:now(),
+    {ok, MR}        = mr_skel:start(1),
+    {ok, NameOfSongs} = mr_skel:job(MR,
+				     fun(X)  -> length(X) end,
+				     fun(X, Acc) -> {Words, Songs} = Acc,
+						    {Words + X, Songs +1}
+				     end,
+				     {0,0},
+				     Data),
+    mr_skel:stop(MR),
+    Done = erlang:now(),
+    Time = timer:now_diff(Done, Now),
+    io:format("MapReduce time: ~p~n",[Time/1000000]),
+    NameOfSongs.
