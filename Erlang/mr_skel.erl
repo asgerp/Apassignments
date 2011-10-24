@@ -6,7 +6,7 @@
 %%%-------------------------------------------------------------------
 -module(mr_skel).
 
--export([start/1, stop/1, job/5, test_sum/0, test_job/0, init/1, test_fac/0,total_words/0, list_of_tracks/2, word_data/0]).
+-export([start/1, stop/1, job/5, test_sum/0, test_job/0, init/1, test_fac/0,total_words/0, list_of_tracks/2, word_data/0, avg/0, hej/2]).
 
 %%% Start the MapReducer with N mappers, returns ok, Pid of the coordinator
 start(N) ->
@@ -22,7 +22,7 @@ stop(Pid) ->
 %%% Define a MapReduce job
 job(CPid, MapFun, RedFun, RedInit, Data) -> 
     rpc(CPid, {init, MapFun, RedFun, RedInit, Data}),
-    {ok, Res} = rpc(CPid, {start,Data}).
+    rpc(CPid, {start,Data}).
     
 
 %%%% Internal implementation
@@ -100,6 +100,8 @@ send_data(Mappers, Data) ->
     send_loop(Mappers, Mappers, Data).
 
 send_loop(Mappers, [Mid|Queue], [D|Data]) ->
+   % io:format("da ~p", [Data]),
+   % io:format("d ~p", [D]),
     data_async(Mid, D),
     send_loop(Mappers, Queue, Data);
 send_loop(_, _, []) -> ok;
@@ -125,6 +127,7 @@ gather_data_from_mappers(Fun, Acc, Missing) ->
 	{stop_gather, Acc} ->
 	    Acc;
 	{From, {result, ChunkOfData}} ->
+%	    io:format("chunk ~p ~n",[ChunkOfData]),
 	    Res = (lists:foldl(Fun, Acc, ChunkOfData)),
 	    Miss = Missing - 1,
 	    if Miss >= 1 ->
@@ -144,7 +147,7 @@ mapper_loop(Reducer, Fun) ->
 	    reply_ok(From),
 	    mapper_loop(Reducer, NewFun);
 	{data, Data} ->
-	    Res = lists:map(Fun,lists:flatten([Data])),
+	    Res = lists:map(Fun,Data),
 	    info(Reducer,{self(), {result, Res}}),
 	    mapper_loop(Reducer, Fun);
 	Unknown ->
@@ -158,7 +161,7 @@ test_sum() ->
                        fun(X) -> X end,
                        fun(X,Acc) -> X+Acc end,
                        0,
-                       lists:seq(1,10)),
+                       []++lists:seq(1,10)),
     {ok, Fac} = mr_skel:job(MR,
                        fun(X) -> X end,
 		       fun(X,Acc) -> X*Acc end,
@@ -167,13 +170,16 @@ test_sum() ->
     mr_skel:stop(MR),
     {Sum, Fac}.
 
+
+    
+
 test_job() ->
     {ok, MR} = mr_skel:start(3),
     {ok, Sum} = mr_skel:job(MR,
 			    fun(X) -> X end,
 			    fun(X,Acc) -> X+Acc end,
 			    0,
-			    lists:seq(1,10000)),
+			    lists:zipwith(fun(X, Y) -> [X*Y/Y] end, lists:seq(1,10), lists:seq(1,10))),
     mr_skel:stop(MR),
     Sum.
 	
@@ -186,35 +192,76 @@ test_fac() ->
 			    lists:seq(1,10)),
     mr_skel:stop(MR),
     Fac.
-wordcount([H | _]) ->
-    Cnt = element(2,H).
+
 
 list_of_tracks([],CleanTracks)->
+%    io:format("clean ~p~n", [CleanTracks]),
     CleanTracks;
 list_of_tracks([H | Tail],CleanTracks) ->
     Track = read_mxm:parse_track(H),
     Words = element(3,Track),
-    Clean = Words++CleanTracks,
-    list_of_tracks(Tail, Clean).
+    %Clean = [Words]++CleanTracks,
+    list_of_tracks(Tail, [Words|CleanTracks]).
     
 
 word_data() ->
+    Now = erlang:now(),
+%    io:format("start redading at ~p", [Now]),
     WordData = read_mxm:from_file("mxm_dataset_test.txt"),
     Tracks = element(2,WordData),
-    list_of_tracks(Tracks,[]).
+    Res = list_of_tracks(Tracks,[]),
+    Then = erlang:now(),
+    Time = timer:now_diff(Then, Now),
+    io:format(" time: ~p~n",[Time/1000000]),
+    Res.
 %%% 44846399
 total_words() ->
     Now = erlang:now(),
     {ok, MR}        = mr_skel:start(25),
     {ok, NoOfWords} = mr_skel:job(MR,
-				  fun(H) -> Cnt = element(2,H) end,
+				  fun(H) -> element(2,H) end,
 				  fun(X,Acc)   -> X+Acc end,
 				  0,
-				  Data = word_data()),
+				  word_data()),
     mr_skel:stop(MR),
     Done = erlang:now(),
     Time = timer:now_diff(Done, Now),
-    {Time, NoOfWords}.
+    io:format(" time: ~p~n",[Time/1000000]),
+    NoOfWords.
 				  
+list_of_tracks2([],CleanTracks)->
+%    io:format("clean ~p~n", [CleanTracks]),
+    CleanTracks;
+list_of_tracks2([H | Tail],CleanTracks) ->
+    Track = read_mxm:parse_track(H),
+    Words = element(3,Track),
+    %Clean = [Words]++CleanTracks,
+    list_of_tracks2(Tail, [[Words]|CleanTracks]).
+    
+
+word_data2() ->
+    Now = erlang:now(),
+%    io:format("start redading at ~p", [Now]),
+    WordData = read_mxm:from_file("mxm_dataset_train.txt"),
+    Tracks = element(2,WordData),
+    Res = list_of_tracks2(Tracks,[]),
+    Then = erlang:now(),
+    Time = timer:now_diff(Then, Now),
+    io:format("Preprocessing time: ~p~n",[Time/1000000]),
+    Res.					  
+
+
 					  
-					  
+avg() ->
+    Now = erlang:now(),
+    {ok, MR}        = mr_skel:start(1),
+    {ok, AvgDiffWords} = mr_skel:job(MR,
+				     fun(X)  -> length(X) end,
+				     fun(X, Acc) -> [X | Acc] end,
+				     [],
+				     word_data2()),
+    mr_skel:stop(MR),
+    Done = erlang:now(),
+    Time = timer:now_diff(Done, Now),
+    io:format("Overall time: ~p~n",[Time/1000000]),
+    lists:foldl(fun(X, Acc) -> X+Acc end, 0,AvgDiffWords)/length(AvgDiffWords).
