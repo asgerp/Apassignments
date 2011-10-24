@@ -6,7 +6,7 @@
 %%%-------------------------------------------------------------------
 -module(mr_skel).
 
--export([start/1, stop/1, job/5, test_sum/0, test_job/0, init/1, test_fac/0,total_words/0, list_of_tracks/2, word_data/0, avg/0, hej/2]).
+-export([start/1, stop/1, job/5, test_sum/0, test_job/0, init/1, test_fac/0,total_words/0, list_of_tracks/2, word_data/0, avg/0]).
 
 %%% Start the MapReducer with N mappers, returns ok, Pid of the coordinator
 start(N) ->
@@ -228,21 +228,19 @@ total_words() ->
     Time = timer:now_diff(Done, Now),
     io:format(" time: ~p~n",[Time/1000000]),
     NoOfWords.
-				  
+			
+%%% Preprocessing for averages	
+%%% We need the data to be in the form [[[{integer(),integer()}]], [[...]]]  
 list_of_tracks2([],CleanTracks)->
-%    io:format("clean ~p~n", [CleanTracks]),
     CleanTracks;
 list_of_tracks2([H | Tail],CleanTracks) ->
     Track = read_mxm:parse_track(H),
     Words = element(3,Track),
-    %Clean = [Words]++CleanTracks,
     list_of_tracks2(Tail, [[Words]|CleanTracks]).
     
-
 word_data2() ->
     Now = erlang:now(),
-%    io:format("start redading at ~p", [Now]),
-    WordData = read_mxm:from_file("mxm_dataset_train.txt"),
+    WordData = read_mxm:from_file("mxm_dataset_test.txt"),
     Tracks = element(2,WordData),
     Res = list_of_tracks2(Tracks,[]),
     Then = erlang:now(),
@@ -251,17 +249,30 @@ word_data2() ->
     Res.					  
 
 
-					  
+%%% To calculate the average number of different words, the mappers calculate the length of the
+%%% list containing the word count. The reducer store the lengths in a tuple {Words, Songs}
+%%% result 80.0210099800968 for largest dataset
 avg() ->
+    Data = word_data2(),
     Now = erlang:now(),
     {ok, MR}        = mr_skel:start(1),
     {ok, AvgDiffWords} = mr_skel:job(MR,
 				     fun(X)  -> length(X) end,
-				     fun(X, Acc) -> [X | Acc] end,
-				     [],
-				     word_data2()),
+				     fun(X, Acc) -> {Words, Songs} = Acc,
+						    {Words + X, Songs +1}
+				     end,
+				     {0,0},
+				     Data),
+%    {ok, AvgWords} = mr_skel:job(MR,
+%				     fun(X)  -> length(X) end,
+%				     fun(X, Acc) -> {Words, Songs} = Acc,
+%						    {Words + X, Songs +1}
+%%				     end,
+%				     {0,0},
+%				     word_data2()),
     mr_skel:stop(MR),
+    {W, S} = AvgDiffWords,
     Done = erlang:now(),
     Time = timer:now_diff(Done, Now),
-    io:format("Overall time: ~p~n",[Time/1000000]),
-    lists:foldl(fun(X, Acc) -> X+Acc end, 0,AvgDiffWords)/length(AvgDiffWords).
+    io:format("MapReduce time: ~p~n",[Time/1000000]),
+    W/S.
