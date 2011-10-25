@@ -276,6 +276,11 @@ avg() ->
     io:format("MapReduce time: ~p~n",[Time/1000000]),
     {W/S, Ws/Ss}.
 
+%% vi skal have [[trackid],[words],[trackid],[words]]
+%% mapper = if [trackid] -> [trackid] else [words] -> [1|0]
+%% if word is contained in song 1 else 0
+%% reducer = if 1 then songid in list else trow it away
+
 grep(Word)->
     Data = word_data2(),
     Now = erlang:now(),
