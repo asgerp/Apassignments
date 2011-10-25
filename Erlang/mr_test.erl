@@ -3,7 +3,7 @@
 -module(mr_test).
 
 -export([test_sum/0, test_job/0, test_fac/0, total_words/0, list_of_tracks/2, 
-	 word_data/0, avg/0, run_alots/0, grep/1]).
+	 word_data/0, avg/0, run_alots/0, grep/1, rev_index/0]).
 
 run_alots() ->
     {Sum, Fac} = test_sum(),
@@ -154,7 +154,7 @@ list_of_tracks3([H | Tail],CleanTracks) ->
     
 word_data3(Word) ->
     Now = erlang:now(),
-    WordData = read_mxm:from_file("mxm_dataset_train.txt"),
+    WordData = read_mxm:from_file("small_test.txt"),
     {Words, Tracks} = WordData,
     WordsBefore = lists:takewhile(fun(X) -> not string:equal(X, Word) end, Words),
     WordIndex = length(WordsBefore) +1,
@@ -207,7 +207,7 @@ grep(Word)->
     {length(NameOfSongs), NameOfSongs}.
 
 rev_index() ->
-    Data = word_data2(),
+    {I,Data} = word_data3("i"),
     Now = erlang:now(),
     {ok, MR}        = mr_skel:start(1),
     {ok, RevIndex} = mr_skel:job(MR,
@@ -219,14 +219,20 @@ rev_index() ->
 				 end,
 				 fun(X, Acc) -> 
 					 {TrckId, Wrd} = X,
+					 io:format("~p",[dict:to_list( Acc)]),
 					 lists:map(fun(Y) -> 
 							   case dict:is_key(Y, Acc) of
 							       true ->
-								   dict:update(Y,fun(Old) -> [element(2,dict:find(Y,Acc))] ++ Old end, Acc);
+								   io:format("true~n"),
+								   NewAcc = dict:update(Y,fun(Old) -> [element(2,dict:fetch(Y,Acc))] ++ Old end, Acc);
 							       false ->
-								   dict:store(Y,[TrckId], Acc)
+								   io:format("fales~n"),
+								   NewAcc = dict:store(Y,[TrckId], Acc),
+								   io:format("X ~p ~p~n", [dict:fetch(Y,NewAcc),Y])
 							   end
-						   end, Wrd)
+						   end, Wrd),
+					 io:format("~p",[dict:to_list( Acc)])
+					     
 				 end,
 				 dict:new(),
 				 Data),
