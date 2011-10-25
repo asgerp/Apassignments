@@ -16,7 +16,7 @@ start(N) ->
 
 %%% Stop the MapReducer with coordinator Pid
 stop(Pid) -> 
-    info(Pid,stop).
+    reply(Pid,stop).
     
     
 %%% Define a MapReduce job
@@ -121,6 +121,9 @@ reducer_loop() ->
 	    {stop_gather, OverAllRes} = gather_data_from_mappers(RedFun, RedInit, Len),
 	    info(From, {self(),{done, OverAllRes, Jid}}),
 	    reducer_loop();
+	{stop_gather, Res} ->
+	    Res,
+	    reducer_loop();
 	Unknown ->
 	    io:format("[RL] unknown message: ~p~n",[Unknown]), 
 	    reducer_loop()
@@ -151,8 +154,8 @@ mapper_loop(Reducer, Fun) ->
 	stop -> 
 	    io:format("Mapper ~p stopping~n", [self()]),
 	    ok;
-	{From, {init, NewFun}} ->
-	    reply_ok(From),
+	{_, {init, NewFun}} ->
+	    %reply_ok(From),
 	    mapper_loop(Reducer, NewFun);
 	{data, Data} ->
 	    Res = lists:map(Fun,Data),

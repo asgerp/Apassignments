@@ -116,7 +116,7 @@ word_data2() ->
 avg() ->
     Data = word_data2(),
     Now = erlang:now(),
-    {ok, MR}        = mr_skel:start(1),
+    {ok, MR}        = mr_skel:start(5),
     {ok, AvgDiffWords} = mr_skel:job(MR,
 				     fun(X)  -> length(X) end,
 				     fun(X, Acc) -> {Words, Songs} = Acc,
@@ -144,24 +144,27 @@ avg() ->
 
 %%% Preprocessing for averages	
 %%% We need the data to be in the form [[[{integer(),integer()}]], [[...]]]  
-list_of_tracks2([],CleanTracks)->
+list_of_tracks3([],CleanTracks)->
     CleanTracks;
-list_of_tracks2([H | Tail],CleanTracks) ->
+list_of_tracks3([H | Tail],CleanTracks) ->
     Track = read_mxm:parse_track(H),
     Words = element(3,Track),
     Id = element(1,Track),
-    list_of_tracks2(Tail, [[{Id,Words}]|CleanTracks]).
+    list_of_tracks3(Tail, [[{Id,Words}]|CleanTracks]).
     
-word_data2(Word) ->
+word_data3(Word) ->
     Now = erlang:now(),
-    WordData = read_mxm:from_file("mxm_dataset_test.txt"),
-    Tracks = element(2,WordData),
-    
-    Res = list_of_tracks2(Tracks,[]),
+    WordData = read_mxm:from_file("mxm_dataset_train.txt"),
+    {Words, Tracks} = WordData,
+    WordsBefore = lists:takewhile(fun(X) -> not string:equal(X, Word) end, Words),
+    WordIndex = length(WordsBefore) +1,
+    Res = list_of_tracks3(Tracks,[]),
     Then = erlang:now(),
     Time = timer:now_diff(Then, Now),
     io:format("Preprocessing time: ~p~n",[Time/1000000]),
-    Res.					  
+ %   io:format("~p ~n", [Res]),
+ %   io:format("~p ~n", [WordIndex]),
+    {WordIndex, Res}.					  
 
 %% {track_id, [words]}
 %% 
@@ -169,48 +172,64 @@ word_data2(Word) ->
 %% reducer = if 1 then songid in list else trow it away
 
 grep(Word)->
-    Data = word_data2(Word),
+    {WI, Data} = word_data3(Word),
+    io:format("index: ~p~n",[WI]),
     Now = erlang:now(),
-    {ok, MR}        = mr_skel:start(1),
+    {ok, MR}        = mr_skel:start(20),
     {ok, NameOfSongs} = mr_skel:job(MR,
-				     fun(X)  -> {TrackId,Wrds} = X,
-						lists:map(fun(Y) -> 
-								  if element(2,Y) == Word ->
-									  1;
-								     true ->
-									  0
-								  end	      
-							     end, Wrds),
-						{TrackId,Wrds}
-				     end,
-				     fun(X, Acc) -> {TrckId, Wrd} = X,
-						    Match = lists:foldl(fun(Y, Sum) -> 
-										Y+Sum 
-									end, 
-								0, Wrd),
-						    if Match == 1 ->
-							    TrckId++Acc
-						    end
-				     end,
-				     [],
+				    fun(X)  -> {TrackId,Wrds} = X,
+					       Hits = lists:map(fun(Y) -> 
+								 if element(1,Y) == WI ->
+									 1;
+								    true ->
+									 0
+								 end	      
+							 end, Wrds),
+					       {TrackId,Hits}
+				    end,
+				    fun(X, Acc) -> {TrckId, Wrd} = X,
+						   Match = lists:foldl(fun(Y, Sum) -> 
+									       Y+Sum 
+								       end, 
+								       0, Wrd),
+						   if Match == 1 ->
+							   [TrckId]++Acc;
+						      true ->
+							   Acc
+						   end
+				    end,
+				    [],
 				     Data),
     mr_skel:stop(MR),
     Done = erlang:now(),
     Time = timer:now_diff(Done, Now),
     io:format("MapReduce time: ~p~n",[Time/1000000]),
-    NameOfSongs.
+    {length(NameOfSongs), NameOfSongs}.
 
 rev_index() ->
     Data = word_data2(),
     Now = erlang:now(),
     {ok, MR}        = mr_skel:start(1),
     {ok, RevIndex} = mr_skel:job(MR,
-				     fun(X)  -> length(X) end,
-				     fun(X, Acc) -> {Words, Songs} = Acc,
-						    {Words + X, Songs +1}
-				     end,
-				     {0,0},
-				     Data),
+				 fun(X)  -> {TrackId,Wrds} = X,
+					    Hits = lists:map(fun(Y) -> 
+								     element(1,Y) 
+							     end, Wrds),
+					    {TrackId,Hits}
+				 end,
+				 fun(X, Acc) -> 
+					 {TrckId, Wrd} = X,
+					 lists:map(fun(Y) -> 
+							   case dict:is_key(Y, Acc) of
+							       true ->
+								   dict:update(Y,fun(Old) -> [element(2,dict:find(Y,Acc))] ++ Old end, Acc);
+							       false ->
+								   dict:store(Y,[TrckId], Acc)
+							   end
+						   end, Wrd)
+				 end,
+				 dict:new(),
+				 Data),
     mr_skel:stop(MR),
     Done = erlang:now(),
     Time = timer:now_diff(Done, Now),
