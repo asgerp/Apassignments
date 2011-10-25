@@ -3,7 +3,7 @@
 -module(mr_test).
 
 -export([test_sum/0, test_job/0, test_fac/0, total_words/0, list_of_tracks/2, 
-	 word_data/0, avg/0, run_alots/0]).
+	 word_data/0, avg/0, run_alots/0, grep/1]).
 
 run_alots() ->
     {Sum, Fac} = test_sum(),
@@ -141,13 +141,35 @@ avg() ->
     io:format("MapReduce time: ~p~n",[Time/1000000]),
     {W/S, Ws/Ss}.
 
+
+%%% Preprocessing for averages	
+%%% We need the data to be in the form [[[{integer(),integer()}]], [[...]]]  
+list_of_tracks2([],CleanTracks)->
+    CleanTracks;
+list_of_tracks2([H | Tail],CleanTracks) ->
+    Track = read_mxm:parse_track(H),
+    Words = element(3,Track),
+    Id = element(1,Track),
+    list_of_tracks2(Tail, [[{Id,Words}]|CleanTracks]).
+    
+word_data2(Word) ->
+    Now = erlang:now(),
+    WordData = read_mxm:from_file("mxm_dataset_test.txt"),
+    Tracks = element(2,WordData),
+    
+    Res = list_of_tracks2(Tracks,[]),
+    Then = erlang:now(),
+    Time = timer:now_diff(Then, Now),
+    io:format("Preprocessing time: ~p~n",[Time/1000000]),
+    Res.					  
+
 %% {track_id, [words]}
 %% 
 %% if word is contained in song 1 else 0
 %% reducer = if 1 then songid in list else trow it away
 
 grep(Word)->
-    Data = word_data2(),
+    Data = word_data2(Word),
     Now = erlang:now(),
     {ok, MR}        = mr_skel:start(1),
     {ok, NameOfSongs} = mr_skel:job(MR,
@@ -162,7 +184,9 @@ grep(Word)->
 						{TrackId,Wrds}
 				     end,
 				     fun(X, Acc) -> {TrckId, Wrd} = X,
-						    Match = lists:foldl(fun(Y, Sum) -> Y+Sum end, 
+						    Match = lists:foldl(fun(Y, Sum) -> 
+										Y+Sum 
+									end, 
 								0, Wrd),
 						    if Match == 1 ->
 							    TrckId++Acc
