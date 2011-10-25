@@ -141,8 +141,8 @@ avg() ->
     io:format("MapReduce time: ~p~n",[Time/1000000]),
     {W/S, Ws/Ss}.
 
-%% vi skal have [[trackid],[words],[trackid],[words]]
-%% mapper = if [trackid] -> [trackid] else [words] -> [1|0]
+%% {track_id, [words]}
+%% 
 %% if word is contained in song 1 else 0
 %% reducer = if 1 then songid in list else trow it away
 
@@ -151,11 +151,24 @@ grep(Word)->
     Now = erlang:now(),
     {ok, MR}        = mr_skel:start(1),
     {ok, NameOfSongs} = mr_skel:job(MR,
-				     fun(X)  -> length(X) end,
-				     fun(X, Acc) -> {Words, Songs} = Acc,
-						    {Words + X, Songs +1}
+				     fun(X)  -> {TrackId,Wrds} = X,
+						lists:map(fun(Y) -> 
+								  if element(2,Y) == Word ->
+									  1;
+								     true ->
+									  0
+								  end	      
+							     end, Wrds),
+						{TrackId,Wrds}
 				     end,
-				     {0,0},
+				     fun(X, Acc) -> {TrckId, Wrd} = X,
+						    Match = lists:foldl(fun(Y, Sum) -> Y+Sum end, 
+								0, Wrd),
+						    if Match == 1 ->
+							    TrckId++Acc
+						    end
+				     end,
+				     [],
 				     Data),
     mr_skel:stop(MR),
     Done = erlang:now(),
