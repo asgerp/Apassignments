@@ -6,7 +6,7 @@
 %%%-------------------------------------------------------------------
 -module(mr_skel).
 
--export([start/1, stop/1, job/5, test_sum/0, test_job/0, init/1, test_fac/0,total_words/0, list_of_tracks/2, word_data/0, avg/0]).
+-export([start/1, stop/1, job/5, init/1]).
 
 %%% Start the MapReducer with N mappers, returns ok, Pid of the coordinator
 start(N) ->
@@ -54,7 +54,6 @@ reply_ok(From, Msg) ->
 
 
 %% asynchronous communication
-
 info(Pid, Msg) ->
     Pid ! Msg.
 
@@ -78,7 +77,7 @@ coordinator_loop(Reducer, Mappers) ->
 	{From, {init, MapFun, RedFun, RedInit, Data}} ->
 	    Len = length(Data),
 	    info(Reducer,{self(),{start,RedFun, RedInit, Len, From}}),
-	   init_mappers(Mappers, MapFun),
+	    init_mappers(Mappers, MapFun),
 	    reply_ok(From),
 	    coordinator_loop(Reducer, Mappers);
 	{_, {start, Data}} ->
@@ -86,6 +85,9 @@ coordinator_loop(Reducer, Mappers) ->
 	    coordinator_loop(Reducer, Mappers);
 	{_, {done, Result, Jid}} ->
 	    reply_ok(Jid, Result),
+	    coordinator_loop(Reducer, Mappers);
+	Unknown ->
+	    io:format("[CL] unknown message: ~p~n",[Unknown]), 
 	    coordinator_loop(Reducer, Mappers)
     end.
 
@@ -118,6 +120,9 @@ reducer_loop() ->
 	{From, {start, RedFun, RedInit, Len, Jid}} ->
 	    {stop_gather, OverAllRes} = gather_data_from_mappers(RedFun, RedInit, Len),
 	    info(From, {self(),{done, OverAllRes, Jid}}),
+	    reducer_loop();
+	Unknown ->
+	    io:format("[RL] unknown message: ~p~n",[Unknown]), 
 	    reducer_loop()
     end.
 
@@ -133,7 +138,10 @@ gather_data_from_mappers(Fun, Acc, Missing) ->
 	    if Miss >= 1 ->
 		    gather_data_from_mappers(Fun, Res, Miss);
 	       true -> info(self(),{stop_gather,Res})
-	    end
+	    end;
+	Unknown ->
+	    io:format("[GDFM] unknown message: ~p~n",[Unknown]), 
+	    gather_data_from_mappers(Fun, Acc, Missing)
     end.
 
 
@@ -151,7 +159,7 @@ mapper_loop(Reducer, Fun) ->
 	    info(Reducer,{self(), {result, Res}}),
 	    mapper_loop(Reducer, Fun);
 	Unknown ->
-	    io:format("unknown message: ~p~n",[Unknown]), 
+	    io:format("[ML] unknown message: ~p~n",[Unknown]), 
 	    mapper_loop(Reducer, Fun)
     end.
 

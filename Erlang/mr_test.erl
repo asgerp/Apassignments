@@ -10,8 +10,9 @@ run_alots() ->
     Sum1 = test_job(),
     Fac1 = test_fac(),
     Res = total_words(),
+    {AvgDiff, Avg} = avg(),
     
-    {Sum, Fac, Sum1, Fac1, Res}.
+    {Sum, Fac, Sum1, Fac1, Res, AvgDiff, Avg}.
     
     
 
@@ -124,7 +125,9 @@ avg() ->
 				     {0,0},
 				     Data),
     {ok, AvgWords} = mr_skel:job(MR,
-				 fun(X)  -> lists:foldl(fun(Y, Acc) -> element(2,Y)+Acc end, 0 ,X) end,
+				 fun(X)  -> lists:foldl(fun(Y, Acc) -> element(2,Y)+Acc end, 
+							0 ,X) 
+				 end,
 				 fun(X, Acc) -> {Words, Songs} = Acc,
 						{Words + X, Songs +1}
 				 end,
@@ -159,3 +162,20 @@ grep(Word)->
     Time = timer:now_diff(Done, Now),
     io:format("MapReduce time: ~p~n",[Time/1000000]),
     NameOfSongs.
+
+rev_index() ->
+    Data = word_data2(),
+    Now = erlang:now(),
+    {ok, MR}        = mr_skel:start(1),
+    {ok, RevIndex} = mr_skel:job(MR,
+				     fun(X)  -> length(X) end,
+				     fun(X, Acc) -> {Words, Songs} = Acc,
+						    {Words + X, Songs +1}
+				     end,
+				     {0,0},
+				     Data),
+    mr_skel:stop(MR),
+    Done = erlang:now(),
+    Time = timer:now_diff(Done, Now),
+    io:format("MapReduce time: ~p~n",[Time/1000000]),
+    RevIndex.
