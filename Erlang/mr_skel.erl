@@ -6,7 +6,7 @@
 %%%-------------------------------------------------------------------
 -module(mr_skel).
 
--export([start/1, stop/1, job/5, init/1]).
+-export([start/1, stop/1, job/5]).
 
 %%% Start the MapReducer with N mappers, returns ok, Pid of the coordinator
 start(N) ->
