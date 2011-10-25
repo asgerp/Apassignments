@@ -2,44 +2,56 @@
 
 -module(mr_test).
 
--export([test_sum/0, test_job/0, test_fac/0,total_words/0, list_of_tracks/2, word_data/0, avg/0]).
+-export([test_sum/0, test_job/0, test_fac/0, total_words/0, list_of_tracks/2, 
+	 word_data/0, avg/0, run_alots/0]).
 
+run_alots() ->
+    {Sum, Fac} = test_sum(),
+    Sum1 = test_job(),
+    Fac1 = test_fac(),
+    Res = total_words(),
+    
+    {Sum, Fac, Sum1, Fac1, Res}.
+    
+    
 
+%% Test sum and fac. Notice weird data. If we just feed it a list mapper will fail. 
 test_sum() ->
     {ok, MR}  = mr_skel:start(3),
     {ok, Sum} = mr_skel:job(MR,
 			    fun(X) -> X end,
 			    fun(X,Acc) -> X+Acc end,
 			    0,
-			    lists:zipwith(fun(X, Y) -> [X*Y/Y] end, lists:seq(1, 10), lists:seq(1, 10))),
+			    lists:map(fun(X) -> [X] end, lists:seq(1,10))),
     {ok, Fac} = mr_skel:job(MR,
 			    fun(X) -> X end,
 			    fun(X,Acc) -> X*Acc end,
 			    1,
-			    lists:zipwith(fun(X, Y) -> [X*Y/Y] end, lists:seq(1, 10), lists:seq(1, 10))),
+			    lists:map(fun(X) -> [X] end, lists:seq(1,10))),
     mr_skel:stop(MR),
     {round(Sum), round(Fac)}.
 
 
     
-
+%% Same as above.
 test_job() ->
     {ok, MR} = mr_skel:start(3),
     {ok, Sum} = mr_skel:job(MR,
 			    fun(X) -> X end,
 			    fun(X,Acc) -> X+Acc end,
 			    0,
-			    lists:zipwith(fun(X, Y) -> [X*Y/Y] end, lists:seq(1, 10), lists:seq(1, 10))),
+			    lists:map(fun(X) -> [X] end, lists:seq(1,10))),
     mr_skel:stop(MR),
     Sum.
-	
+
+%% Same as above.	
 test_fac() ->
     {ok, MR} = mr_skel:start(3),
     {ok, Fac} = mr_skel:job(MR,
 			    fun(X) -> X end,
 			    fun(X,Acc) -> X*Acc end,
 			    1,
-			    lists:seq(1,10)),
+			    lists:map(fun(X) -> [X] end, lists:seq(1,10))),
     mr_skel:stop(MR),
     Fac.
 
