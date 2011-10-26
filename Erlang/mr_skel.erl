@@ -137,6 +137,7 @@ gather_data_from_mappers(Fun, Acc, Missing) ->
 	{_, {result, ChunkOfData}} ->
 %	    io:format("chunk ~p ~n",[ChunkOfData]),
 	    Res = (lists:foldl(Fun, Acc, ChunkOfData)),
+%	    io:format("Acc ~p ~n",[dict:to_list(Acc)]),
 	    Miss = Missing - 1,
 	    if Miss >= 1 ->
 		    gather_data_from_mappers(Fun, Res, Miss);

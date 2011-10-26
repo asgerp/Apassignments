@@ -154,7 +154,7 @@ list_of_tracks3([H | Tail],CleanTracks) ->
     
 word_data3(Word) ->
     Now = erlang:now(),
-    WordData = read_mxm:from_file("small_test.txt"),
+    WordData = read_mxm:from_file("mxm_dataset_test.txt"),
     {Words, Tracks} = WordData,
     WordsBefore = lists:takewhile(fun(X) -> not string:equal(X, Word) end, Words),
     WordIndex = length(WordsBefore) +1,
@@ -213,26 +213,20 @@ rev_index() ->
     {ok, RevIndex} = mr_skel:job(MR,
 				 fun(X)  -> {TrackId,Wrds} = X,
 					    Hits = lists:map(fun(Y) -> 
-								     element(1,Y) 
+								     {element(1,Y), TrackId} 
 							     end, Wrds),
 					    {TrackId,Hits}
 				 end,
 				 fun(X, Acc) -> 
 					 {TrckId, Wrd} = X,
-					 io:format("~p",[dict:to_list( Acc)]),
-					 lists:map(fun(Y) -> 
-							   case dict:is_key(Y, Acc) of
-							       true ->
-								   io:format("true~n"),
-								   NewAcc = dict:update(Y,fun(Old) -> [element(2,dict:fetch(Y,Acc))] ++ Old end, Acc);
-							       false ->
-								   io:format("fales~n"),
-								   NewAcc = dict:store(Y,[TrckId], Acc),
-								   io:format("X ~p ~p~n", [dict:fetch(Y,NewAcc),Y])
-							   end
-						   end, Wrd),
-					 io:format("~p",[dict:to_list( Acc)])
-					     
+				%	 io:format("Acc ~p~n",[dict:to_list( Acc)]),
+				%	 io:format("Y ~p~n",[Wrd]),
+					 New = dict:from_list(Wrd),
+					 Newer = dict:merge(fun(K, V1, V2) ->
+								    [V1] ++ V2
+							    end,
+								    New,Acc),
+					 Newer
 				 end,
 				 dict:new(),
 				 Data),
@@ -240,4 +234,4 @@ rev_index() ->
     Done = erlang:now(),
     Time = timer:now_diff(Done, Now),
     io:format("MapReduce time: ~p~n",[Time/1000000]),
-    RevIndex.
+    RevIndex.	     
